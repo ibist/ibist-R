@@ -73,9 +73,27 @@ power.p2s.test <- function(n = NULL, p1 = NULL, p2 = NULL,
                            tol = .Machine$double.eps^0.25) {
     if (sum(sapply(list(n, p1, p2, power, sig.level), is.null)) != 1) 
         stop("exactly one of 'n', 'p1', 'p2', 'power', and 'sig.level' must be NULL")
-    if (!is.null(sig.level) && !is.numeric(sig.level) || any(0 > 
-        sig.level | sig.level > 1)) 
-        stop("'sig.level' must be numeric in [0, 1]")
+    if (!is.null(n) && (!is.numeric(n) || length(n) != 1L ||
+        !is.finite(n) || n <= 0))
+        stop("'n' must be a single positive number")
+    if (!is.null(p1) && (!is.numeric(p1) || length(p1) != 1L ||
+        !is.finite(p1) || p1 <= 0 || p1 >= 1))
+        stop("'p1' must be a single number in (0, 1)")
+    if (!is.null(p2) && (!is.numeric(p2) || length(p2) != 1L ||
+        !is.finite(p2) || p2 <= 0 || p2 >= 1))
+        stop("'p2' must be a single number in (0, 1)")
+    if (!is.null(power) && (!is.numeric(power) || length(power) != 1L ||
+        !is.finite(power) || power <= 0 || power >= 1))
+        stop("'power' must be a single number in (0, 1)")
+    if (!is.null(sig.level) && (!is.numeric(sig.level) ||
+        length(sig.level) != 1L || !is.finite(sig.level) ||
+        sig.level <= 0 || sig.level >= 1))
+        stop("'sig.level' must be a single number in (0, 1)")
+    if (!is.numeric(group.rate) || length(group.rate) != 1L ||
+        !is.finite(group.rate) || group.rate <= 0)
+        stop("'group.rate' must be a single positive number")
+    if (!is.finite(tol) || tol <= 0)
+        stop("'tol' must be positive")
     alternative <- match.arg(alternative)
     tside <- switch(alternative, one.sided = 1, two.sided = 2)
     p.body <- if (strict && tside == 2) quote({

@@ -18,8 +18,8 @@ Depends:
     R (>= 4.4.0)
 VignetteBuilder: knitr
 License: GPL (>= 3)
-URL: https://github.com/statds/ibist-R
-BugReports: https://github.com/statds/ibist-R/issues
+URL: https://github.com/ibist/ibist-R
+BugReports: https://github.com/ibist/ibist-R/issues
 Imports: stats, rlang, ggplot2
 Suggests: knitr, testthat (>= 3.0.0)
 LazyData: true

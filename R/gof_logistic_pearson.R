@@ -77,9 +77,9 @@
 #'
 #' @seealso \code{\link{glm}}, \code{\link{chisq.test}}
 #'
-#' @importFrom stats
-#'   family model.frame model.response model.weights
-#'   fitted model.matrix aggregate coef pchisq formula
+#' @importFrom stats family
+#' @importFrom stats model.frame model.response model.weights
+#' @importFrom stats fitted model.matrix aggregate coef pchisq formula
 #' @export
 gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
                                  pool = TRUE) {
@@ -95,12 +95,10 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
   mf <- model.frame(fit)
   y  <- model.response(mf)
   w  <- model.weights(mf)
-  if (is.null(w)) w <- rep(1, length(y))
 
-  if (any(w <= 0)) stop("weights must be positive.")
-  if (!all(y %in% c(0, 1))) {
-    stop("Response must be binary (0/1).")
-  }
+  response <- binomial_response_counts(y, w)
+  O_i <- response$observed
+  n_i <- response$n
 
   pi_hat <- fitted(fit)
 
@@ -112,16 +110,16 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
   X <- model.matrix(fit)
   key <- apply(X, 1, paste, collapse = ":")
 
-  df <- data.frame(key = key, y = y, w = w, pi_hat = pi_hat)
+  df <- data.frame(key = key, O = O_i, n = n_i, pi_hat = pi_hat)
 
   agg <- aggregate(
-    cbind(yw = y * w, w = w, piw = pi_hat * w) ~ key,
+    cbind(O = O, n = n, piw = pi_hat * n) ~ key,
     data = df,
     FUN = sum
   )
 
-  O <- agg$yw
-  n <- agg$w
+  O <- agg$O
+  n <- agg$n
   pi_g <- agg$piw / n
 
   df_group <- data.frame(O = O, n = n, pi_hat = pi_g)
@@ -133,7 +131,7 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
     stop("Not enough unique covariate patterns: J <= k.")
   }
 
-  if (J == length(y)) {
+  if (J == NROW(y)) {
     warning("No replication detected; Pearson GoF not appropriate.")
   }
 
@@ -183,6 +181,43 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
 
   class(res) <- "htest"
   res
+}
+
+binomial_response_counts <- function(y, w = NULL) {
+  if (is.matrix(y)) {
+    if (ncol(y) != 2L) {
+      stop("Matrix response must have two columns: successes and failures.")
+    }
+    if (any(!is.finite(y)) || any(y < 0)) {
+      stop("Matrix response counts must be finite and non-negative.")
+    }
+    n <- rowSums(y)
+    if (any(n <= 0)) {
+      stop("Matrix response rows must have positive totals.")
+    }
+    if (is.null(w)) {
+      w <- rep(1, nrow(y))
+    } else if (any(!is.finite(w)) || any(w <= 0)) {
+        stop("weights must be positive.")
+    }
+    return(list(observed = y[, 1] * w, n = n * w))
+  }
+
+  if (!is.numeric(y) || any(!is.finite(y)) || any(y < 0 | y > 1)) {
+    stop("Response must be binary, a proportion with weights, or a two-column matrix.")
+  }
+
+  has_weights <- !is.null(w)
+  if (is.null(w)) w <- rep(1, length(y))
+  if (any(!is.finite(w)) || any(w <= 0)) {
+    stop("weights must be positive.")
+  }
+
+  if (!all(y %in% c(0, 1)) && !has_weights) {
+    stop("Proportion responses require binomial weights.")
+  }
+
+  list(observed = y * w, n = w)
 }
 
 pool_groups <- function(df, min_n = 5, min_expected = 5) {

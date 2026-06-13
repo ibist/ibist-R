@@ -135,6 +135,17 @@ power.p1s.test <- function(
     stop("'sig.level' must be in (0,1)", call. = FALSE)
   if (!is.null(power) && !(power > 0 && power < 1))
     stop("'power' must be in (0,1)", call. = FALSE)
+  if (!is.numeric(tol) || length(tol) != 1L || !is.finite(tol) || tol <= 0)
+    stop("'tol' must be positive", call. = FALSE)
+  if (!is.numeric(max_n) || length(max_n) != 1L ||
+      !is.finite(max_n) || max_n < 1)
+    stop("'max_n' must be at least 1", call. = FALSE)
+  max_n <- as.integer(floor(max_n))
+  if (!is.numeric(alpha.min.frac) || length(alpha.min.frac) != 1L ||
+      !is.finite(alpha.min.frac) ||
+      alpha.min.frac <= 0 || alpha.min.frac >= 1) {
+    stop("'alpha.min.frac' must be in (0,1)", call. = FALSE)
+  }
 
   if (!exact && exact.method != "quantile") {
     warning(
@@ -323,11 +334,20 @@ power.p1s.test <- function(
           
           ## Step 1: monotone search
           hi <- 10
-          while (power_at_n(hi) < power) hi <- hi * 2
+          while (power_at_n(hi) < power) {
+              hi <- hi * 2
+              if (hi > max_n) {
+                  stop("Required n exceeds 'max_n'", call. = FALSE)
+              }
+          }
           
           ## Step 2: local scan
-          n_seq <- seq.int(max(1, hi/2), hi * 2)
+          n_seq <- seq.int(max(1, hi/2), min(max_n, hi * 2))
           feas <- vapply(n_seq, feasible, logical(1))
+          if (!any(feas)) {
+              stop("No feasible n found; consider size.rule = 'minimal' or a smaller alpha.min.frac",
+                   call. = FALSE)
+          }
           n <- n_seq[min(which(feas))]
           power <- power_at_n(n)
       }
