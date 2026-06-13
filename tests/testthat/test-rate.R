@@ -7,6 +7,22 @@ test_that("rate.1s.ci returns stable exact intervals", {
                tolerance = 1e-7)
 })
 
+test_that("rate.1s.ci methods return stable intervals", {
+  methods <- c("score", "wh", "wald", "log")
+  expected <- list(
+    score = c(0.2135701, 1.1705758),
+    wh = c(0.1611348, 1.1668164),
+    wald = c(0.06173873, 0.93826127),
+    log = c(0.2081139, 1.2012652)
+  )
+
+  for (method in methods) {
+    result <- rate.1s.ci(5, T = 10, method = method, correct = FALSE)
+    expect_equal(unname(result$conf.int), expected[[method]],
+                 tolerance = 1e-7)
+  }
+})
+
 test_that("rate.test handles one- and two-sample tests", {
   one_sample <- rate.test(x = 411, T = 25800, r = 0.0119,
                           correct = FALSE)
@@ -17,6 +33,18 @@ test_that("rate.test handles one- and two-sample tests", {
   expect_s3_class(two_sample, "htest")
   expect_equal(unname(one_sample$estimate), 411 / 25800)
   expect_equal(two_sample$p.value, 0.2122691, tolerance = 1e-6)
+})
+
+test_that("rate.test handles one-sided alternatives", {
+  greater <- rate.test(x = 411, T = 25800, r = 0.0119,
+                       alternative = "greater", correct = FALSE)
+  less <- rate.test(x = 411, T = 25800, r = 0.0119,
+                    alternative = "less", correct = FALSE)
+
+  expect_equal(greater$p.value, 1.47588e-09, tolerance = 1e-6)
+  expect_equal(greater$p.value + less$p.value, 1, tolerance = 1e-12)
+  expect_equal(greater$alternative, "greater")
+  expect_equal(less$alternative, "less")
 })
 
 test_that("rate functions validate inputs", {

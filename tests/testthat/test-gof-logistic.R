@@ -65,3 +65,13 @@ test_that("gof_logistic_pearson validates model type", {
   expect_error(gof_logistic_pearson(lm(mpg ~ wt, data = mtcars)),
                "glm")
 })
+
+test_that("gof_logistic_pearson validates binomial response encodings", {
+  prop_data <- data.frame(y = c(0.25, 0.75), x = c(0, 1))
+  fit_prop <- suppressWarnings(
+    glm(y ~ x, data = prop_data, family = "binomial")
+  )
+
+  expect_error(gof_logistic_pearson(fit_prop),
+               "Proportion responses require binomial weights")
+})
