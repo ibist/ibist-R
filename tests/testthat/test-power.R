@@ -26,6 +26,20 @@ test_that("power functions solve sample sizes", {
   expect_equal(two_sample$n, 86.04591, tolerance = 1e-6)
 })
 
+test_that("power.p1s.test solves missing effect and significance inputs", {
+  p1_result <- power.p1s.test(n = 50, p0 = 0.1, power = 0.8)
+  p0_result <- power.p1s.test(n = 50, p1 = 0.25, power = 0.8)
+  sig_result <- power.p1s.test(n = 50, p0 = 0.1, p1 = 0.25,
+                               sig.level = NULL, power = 0.8)
+  less_result <- power.p1s.test(n = 50, p0 = 0.25, power = 0.8,
+                                alternative = "less")
+
+  expect_equal(p1_result$p1, 0.2334746, tolerance = 1e-6)
+  expect_equal(p0_result$p0, 0.1113088, tolerance = 1e-6)
+  expect_equal(sig_result$sig.level, 0.02029299, tolerance = 1e-6)
+  expect_equal(less_result$p1, 0.1117713, tolerance = 1e-6)
+})
+
 test_that("power.p2s.test agrees with stats::power.prop.test for equal groups", {
   result <- power.p2s.test(n = 100, p1 = 0.3, p2 = 0.5,
                            group.rate = 1, correct = FALSE)
@@ -50,4 +64,16 @@ test_that("power functions validate inputs", {
                "group.rate")
   expect_error(power.p2s.test(n = 10, p1 = 0.1, p2 = 1),
                "p2")
+  expect_error(power.p1s.test(n = c(10, 20), p0 = 0.1, p1 = 0.2,
+                              power = NULL),
+               "n")
+  expect_error(power.p1s.test(n = 10, p0 = 0.1, p1 = 0.2,
+                              power = NULL, correct = NA),
+               "correct")
+  expect_error(power.p2s.test(n = 10, p1 = 0.1, p2 = 0.2,
+                              correct = c(TRUE, FALSE)),
+               "correct")
+  expect_error(power.p2s.test(n = 10, p1 = 0.1, p2 = 0.2,
+                              tol = c(1e-4, 1e-5)),
+               "tol")
 })

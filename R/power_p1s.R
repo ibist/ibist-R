@@ -123,18 +123,29 @@ power.p1s.test <- function(
 
   ## ---- basic validation ----
   if (!is.null(n)) {
-    if (!is.finite(n) || n <= 0)
-      stop("'n' must be positive", call. = FALSE)
+    if (!is.numeric(n) || length(n) != 1L || !is.finite(n) || n <= 0)
+      stop("'n' must be a single positive number", call. = FALSE)
     n <- as.integer(ceiling(n))
   }
-  if (!is.null(p0) && !(p0 > 0 && p0 < 1))
-    stop("'p0' must be in (0,1)", call. = FALSE)
-  if (!is.null(p1) && !(p1 > 0 && p1 < 1))
-    stop("'p1' must be in (0,1)", call. = FALSE)
-  if (!is.null(sig.level) && !(sig.level > 0 && sig.level < 1))
-    stop("'sig.level' must be in (0,1)", call. = FALSE)
-  if (!is.null(power) && !(power > 0 && power < 1))
-    stop("'power' must be in (0,1)", call. = FALSE)
+  if (!is.null(p0) && (!is.numeric(p0) || length(p0) != 1L ||
+      !is.finite(p0) || p0 <= 0 || p0 >= 1))
+    stop("'p0' must be a single number in (0,1)", call. = FALSE)
+  if (!is.null(p1) && (!is.numeric(p1) || length(p1) != 1L ||
+      !is.finite(p1) || p1 <= 0 || p1 >= 1))
+    stop("'p1' must be a single number in (0,1)", call. = FALSE)
+  if (!is.null(sig.level) && (!is.numeric(sig.level) ||
+      length(sig.level) != 1L || !is.finite(sig.level) ||
+      sig.level <= 0 || sig.level >= 1))
+    stop("'sig.level' must be a single number in (0,1)", call. = FALSE)
+  if (!is.null(power) && (!is.numeric(power) || length(power) != 1L ||
+      !is.finite(power) || power <= 0 || power >= 1))
+    stop("'power' must be a single number in (0,1)", call. = FALSE)
+  if (!is.logical(correct) || length(correct) != 1L || is.na(correct))
+    stop("'correct' must be TRUE or FALSE", call. = FALSE)
+  if (!is.logical(exact) || length(exact) != 1L || is.na(exact))
+    stop("'exact' must be TRUE or FALSE", call. = FALSE)
+  if (!is.logical(strict) || length(strict) != 1L || is.na(strict))
+    stop("'strict' must be TRUE or FALSE", call. = FALSE)
   if (!is.numeric(tol) || length(tol) != 1L || !is.finite(tol) || tol <= 0)
     stop("'tol' must be positive", call. = FALSE)
   if (!is.numeric(max_n) || length(max_n) != 1L ||
@@ -265,6 +276,24 @@ power.p1s.test <- function(
     power_body <- exact_quantile_power_body
   }
 
+  find_root <- function(f, intervals, label) {
+      if (is.numeric(intervals) && length(intervals) == 2L) {
+          intervals <- list(intervals)
+      }
+      for (interval in intervals) {
+          lower <- interval[1]
+          upper <- interval[2]
+          if (!is.finite(lower) || !is.finite(upper) || lower >= upper)
+              next
+          out <- try(stats::uniroot(f, c(lower, upper), tol = tol)$root,
+                     silent = TRUE)
+          if (!inherits(out, "try-error"))
+              return(out)
+      }
+      stop("Could not solve for '", label, "' with the supplied parameters",
+           call. = FALSE)
+  }
+
   ## ---- solve for missing parameter ----
   if (is.null(power)) {
     power <- eval(power_body)
@@ -355,18 +384,30 @@ power.p1s.test <- function(
 
   
   if (is.null(p1)) {
-      p1 <- uniroot(function(pp) eval(power_body) - power,
-                    c(tol, 1 - tol), tol = tol)$root
+      intervals <- switch(
+          alternative,
+          greater = list(c(p0 + tol, 1 - tol)),
+          less = list(c(tol, p0 - tol)),
+          two.sided = list(c(p0 + tol, 1 - tol), c(tol, p0 - tol))
+      )
+      p1 <- find_root(function(p1) eval(power_body) - power,
+                      intervals, "p1")
   }
 
   if (is.null(p0)) {
-      p0 <- uniroot(function(pp) eval(power_body) - power,
-                    c(tol, 1 - tol), tol = tol)$root
+      intervals <- switch(
+          alternative,
+          greater = list(c(tol, p1 - tol)),
+          less = list(c(p1 + tol, 1 - tol)),
+          two.sided = list(c(tol, p1 - tol), c(p1 + tol, 1 - tol))
+      )
+      p0 <- find_root(function(p0) eval(power_body) - power,
+                      intervals, "p0")
   }
   
   if (is.null(sig.level)) {
-      sig.level <- uniroot(function(a) eval(power_body) - power,
-                           c(tol, 1 - tol), tol = tol)$root
+      sig.level <- find_root(function(sig.level) eval(power_body) - power,
+                             c(tol, 1 - tol), "sig.level")
   }
 
   achieved.sig.level <- if (exact) {

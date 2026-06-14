@@ -92,7 +92,11 @@ power.p2s.test <- function(n = NULL, p1 = NULL, p2 = NULL,
     if (!is.numeric(group.rate) || length(group.rate) != 1L ||
         !is.finite(group.rate) || group.rate <= 0)
         stop("'group.rate' must be a single positive number")
-    if (!is.finite(tol) || tol <= 0)
+    if (!is.logical(correct) || length(correct) != 1L || is.na(correct))
+        stop("'correct' must be TRUE or FALSE")
+    if (!is.logical(strict) || length(strict) != 1L || is.na(strict))
+        stop("'strict' must be TRUE or FALSE")
+    if (!is.numeric(tol) || length(tol) != 1L || !is.finite(tol) || tol <= 0)
         stop("'tol' must be positive")
     alternative <- match.arg(alternative)
     tside <- switch(alternative, one.sided = 1, two.sided = 2)
