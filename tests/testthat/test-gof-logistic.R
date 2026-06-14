@@ -66,6 +66,17 @@ test_that("gof_logistic_pearson validates model type", {
                "glm")
 })
 
+test_that("gof_logistic_pearson validates control arguments", {
+  data(rds, package = "ibist")
+  fit <- glm(death ~ surf + bwt, data = rds, weights = count,
+             family = "binomial")
+
+  expect_error(gof_logistic_pearson(fit, min_n = 0), "min_n")
+  expect_error(gof_logistic_pearson(fit, min_expected = -1),
+               "min_expected")
+  expect_error(gof_logistic_pearson(fit, pool = NA), "pool")
+})
+
 test_that("gof_logistic_pearson validates binomial response encodings", {
   prop_data <- data.frame(y = c(0.25, 0.75), x = c(0, 1))
   fit_prop <- suppressWarnings(
@@ -74,4 +85,18 @@ test_that("gof_logistic_pearson validates binomial response encodings", {
 
   expect_error(gof_logistic_pearson(fit_prop),
                "Proportion responses require binomial weights")
+})
+
+test_that("gof_logistic_pearson uses fitted model rank for degrees of freedom", {
+  data <- data.frame(
+    x = rep(1:6, each = 2),
+    y = rep(c(0, 1), 6)
+  )
+  data$x_dup <- data$x
+  fit <- glm(y ~ x + x_dup, data = data, family = "binomial")
+
+  result <- gof_logistic_pearson(fit, pool = FALSE)
+
+  expect_true(anyNA(coef(fit)))
+  expect_equal(unname(result$parameter), 4)
 })

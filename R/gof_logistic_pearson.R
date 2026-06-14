@@ -92,6 +92,20 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
     stop("Model must be binomial.")
   }
 
+  if (!is.logical(pool) || length(pool) != 1L || is.na(pool)) {
+    stop("'pool' must be TRUE or FALSE.")
+  }
+
+  if (!is.numeric(min_n) || length(min_n) != 1L ||
+      !is.finite(min_n) || min_n <= 0) {
+    stop("'min_n' must be a single positive number.")
+  }
+
+  if (!is.numeric(min_expected) || length(min_expected) != 1L ||
+      !is.finite(min_expected) || min_expected < 0) {
+    stop("'min_expected' must be a single non-negative number.")
+  }
+
   mf <- model.frame(fit)
   y  <- model.response(mf)
   w  <- model.weights(mf)
@@ -125,7 +139,10 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
   df_group <- data.frame(O = O, n = n, pi_hat = pi_g)
 
   J <- nrow(df_group)
-  k <- length(coef(fit))
+  k <- fit$rank
+  if (is.null(k)) {
+    k <- sum(!is.na(coef(fit)))
+  }
 
   if (J <= k) {
     stop("Not enough unique covariate patterns: J <= k.")
