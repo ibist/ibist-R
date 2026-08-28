@@ -25,9 +25,9 @@ VignetteBuilder: knitr
 License: GPL (>= 3)
 URL: https://github.com/ibist/ibist-R
 BugReports: https://github.com/ibist/ibist-R/issues
-Imports: stats, rlang, ggplot2, Rcpp
+Imports: stats, Rcpp
 LinkingTo: Rcpp
-Suggests: knitr, testthat (>= 3.0.0)
+Suggests: ggplot2, knitr, rlang, testthat (>= 3.0.0)
 LazyData: true
 Encoding: UTF-8
 Config/testthat/edition: 3

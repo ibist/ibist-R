@@ -31,9 +31,6 @@
 #'          pmean = 2, psd = sqrt(2)
 #' )
 #'
-#' @importFrom rlang .data
-#' @importFrom ggplot2 ggplot geom_histogram geom_line aes
-#' @importFrom ggplot2 facet_wrap labs theme_minimal after_stat
 #' @export
 demo_clt <- function(
   rng,
