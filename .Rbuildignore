@@ -32,3 +32,5 @@
 ~$
 
 data-raw/
+^ibist-book$
+^priority\.md$

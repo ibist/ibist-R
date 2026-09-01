@@ -30,7 +30,7 @@ rate.1s.ci(
 }}
 
 \item{correct}{Logical. Apply continuity correction for
-\code{"score"} and \code{"wald"} methods. Default is TRUE.}
+\code{"score"}, \code{"wh"}, and \code{"wald"} methods. Default is TRUE.}
 
 \item{...}{Reserved for future extensions.}
 }
@@ -84,8 +84,8 @@ For \eqn{x > 0}, applies normal approximation to \eqn{\log(\lambda)}
 and transforms back. For \eqn{x = 0}, lower limit 0, upper limit
 \eqn{-\log(\alpha/2)/T}.
 
-When `correct = TRUE`, continuity correction is applied by replacing
-`x` with `x - 0.5` in the lower limit and `x + 1 + 0.5` in the upper limit.
+When \code{correct = TRUE}, continuity correction is applied on the count
+scale for methods that support it.
 }
 \examples{
 rate.1s.ci(5, 10)

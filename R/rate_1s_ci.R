@@ -15,7 +15,7 @@
 #'     \item \code{"log"}: Log-transformed interval
 #'   }
 #' @param correct Logical. Apply continuity correction for
-#'   \code{"score"} and \code{"wald"} methods. Default is TRUE.
+#'   \code{"score"}, \code{"wh"}, and \code{"wald"} methods. Default is TRUE.
 #' @param ... Reserved for future extensions.
 #'
 #' @details
@@ -61,8 +61,8 @@
 #' and transforms back. For \eqn{x = 0}, lower limit 0, upper limit
 #' \eqn{-\log(\alpha/2)/T}.
 #'
-#' When `correct = TRUE`, continuity correction is applied by replacing
-#' `x` with `x - 0.5` in the lower limit and `x + 1 + 0.5` in the upper limit.
+#' When \code{correct = TRUE}, continuity correction is applied on the count
+#' scale for methods that support it.
 #' 
 #' @return An object of class \code{"htest"}.
 #'
@@ -151,11 +151,12 @@ ci_wh <- function(x, T, conf.level, correct = TRUE, ...) {
   zL <- qnorm(alpha / 2)
   zU <- qnorm(1 - alpha / 2)
 
-  # continuity correction offset
-  d <- if (correct) 0.5 else 0
-
-  lower_x <- x - d
-  upper_x <- x + 1 + d
+  if (correct) {
+    lower_x <- upper_x <- x + 0.5
+  } else {
+    lower_x <- x
+    upper_x <- x + 1
+  }
 
   lower <- if (lower_x <= 0) {
     0

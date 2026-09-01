@@ -23,6 +23,13 @@ test_that("rate.1s.ci methods return stable intervals", {
   }
 })
 
+test_that("rate.1s.ci Wilson-Hilferty continuity correction uses midpoint", {
+  result <- rate.1s.ci(5, T = 10, method = "wh", correct = TRUE)
+
+  expect_equal(unname(result$conf.int), c(0.1896388, 1.0959559),
+               tolerance = 1e-7)
+})
+
 test_that("rate.test handles one- and two-sample tests", {
   one_sample <- rate.test(x = 411, T = 25800, r = 0.0119,
                           correct = FALSE)
@@ -33,6 +40,20 @@ test_that("rate.test handles one- and two-sample tests", {
   expect_s3_class(two_sample, "htest")
   expect_equal(unname(one_sample$estimate), 411 / 25800)
   expect_equal(two_sample$p.value, 0.2122691, tolerance = 1e-6)
+})
+
+test_that("rate.test uses score interval for one-sample rate", {
+  greater <- rate.test(x = 411, T = 25800, r = 0.0119,
+                       alternative = "greater")
+  less <- rate.test(x = 411, T = 25800, r = 0.0119,
+                    alternative = "less")
+  score_ci <- rate.1s.ci(411, T = 25800, method = "score")$conf.int
+
+  expect_equal(as.numeric(greater$conf.int), as.numeric(score_ci))
+  expect_equal(as.numeric(less$conf.int), as.numeric(score_ci))
+  expect_equal(as.numeric(greater$conf.int), c(0.01444433596, 0.01756689433),
+               tolerance = 1e-7)
+  expect_equal(attr(greater$conf.int, "conf.level"), 0.95)
 })
 
 test_that("rate.test handles one-sided alternatives", {

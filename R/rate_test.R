@@ -9,10 +9,12 @@
 #' @param T a vector of exposures corresponding to \code{x} (e.g., person-time).
 #'   Must have the same length as \code{x}.
 #' @param r a positive number specifying the null rate per unit exposure,
-#'   \eqn{\lambda_0}, for a one-sample test. Detault to 1.0. Ignored for two-sample tests.
+#'   \eqn{\lambda_0}, for a one-sample test. Default to 1.0. Ignored for two-sample tests.
 #' @param alternative a character string specifying the alternative hypothesis,
 #'   one of \code{"two.sided"}, \code{"less"}, or \code{"greater"}.
-#' @param conf.level confidence level for the confidence interval.
+#' @param conf.level confidence level for the confidence interval. For
+#'   one-sample tests, the interval is the score confidence interval for the
+#'   rate.
 #' @param correct logical; if \code{TRUE}, applies a continuity correction on
 #'   the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
 #'   to \eqn{x} in the direction determined by \code{alternative}. For
@@ -28,7 +30,7 @@
 #' the count scale if \code{correct = TRUE}. Two-sided p-values use
 #' \eqn{2\{1-\Phi(|Z|)\}}.
 #'
-#' #' Two-sample test:
+#' Two-sample test:
 #' Assume independent \eqn{X_1 \sim \mathrm{Pois}(\lambda_1 T_1)} and
 #' \eqn{X_2 \sim \mathrm{Pois}(\lambda_2 T_2)} with known exposures
 #' \eqn{T_1} and \eqn{T_2}. The null hypothesis is
@@ -58,9 +60,9 @@
 #' confidence interval for \eqn{\Delta}.
 #'
 #' Confidence intervals:
-#' For one-sample tests, the confidence interval is for \eqn{\lambda} and is
-#' obtained by inverting the same normal approximation on the count scale for
-#' \eqn{\mu=\lambda T}, then dividing by \eqn{T}.
+#' For one-sample tests, the confidence interval is the score interval for
+#' \eqn{\lambda}, as computed by \code{\link{rate.1s.ci}} with
+#' \code{method = "score"}.
 #' For two-sample tests, the confidence interval is for the difference in rates
 #' \eqn{\lambda_1-\lambda_2}, analogous to the difference in proportions in
 #' \code{\link[stats]{prop.test}}.
@@ -70,11 +72,9 @@
 #' \item{statistic}{the standardized normal statistic \code{z}.}
 #' \item{parameter}{degrees of freedom (\code{df = 1}).}
 #' \item{p.value}{the p-value.}
-#' \item{conf.int}{a confidence interval for the difference between the two
-#'   rates, \eqn{\lambda_1-\lambda_2}, for two-sample tests, obtained by
-#'   inverting the score-type normal approximation on the count scale. This is
-#'   closer to a score (Wilson-type) interval for Poisson mean, then rescaled
-#'   to the rate.}
+#' \item{conf.int}{a confidence interval for the rate in one-sample tests or
+#'   for the difference between rates, \eqn{\lambda_1-\lambda_2}, in two-sample
+#'   tests.}
 #' \item{estimate}{estimated rate (one-sample) or estimated rates (two-sample).}
 #' \item{null.value}{the null rate (one-sample) or the null rate difference
 #'   \eqn{\lambda_1-\lambda_2=0} (two-sample).}
@@ -144,13 +144,13 @@ rate.test <- function(x, T = 1.0, r = 1.0,
                         "greater"   = pnorm(z, lower.tail = FALSE)
                         )
       
-      ## CI for lambda by inverting |(x-c)-mu|/sqrt(mu) <= zcrit, then /T
-      x_adj <- x - cc
-      disc <- zcrit^2 + 4 * x_adj
-      mu_lo <- 0.5 * (zcrit^2 + 2 * x_adj - zcrit * sqrt(disc))
-      mu_hi <- 0.5 * (zcrit^2 + 2 * x_adj + zcrit * sqrt(disc))
-      mu_lo <- max(0, mu_lo)
-      conf.int <- c(mu_lo, mu_hi) / T
+      conf.int <- rate.1s.ci(
+          x = x,
+          T = T,
+          conf.level = conf.level,
+          method = "score",
+          correct = correct
+      )$conf.int
       
       estimate <- c(rate = x / T)
       null.value <- c(rate = r)

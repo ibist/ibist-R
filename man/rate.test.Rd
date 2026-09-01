@@ -21,12 +21,14 @@ test; a vector of length two specifies a two-sample comparison.}
 Must have the same length as \code{x}.}
 
 \item{r}{a positive number specifying the null rate per unit exposure,
-\eqn{\lambda_0}, for a one-sample test. Detault to 1.0. Ignored for two-sample tests.}
+\eqn{\lambda_0}, for a one-sample test. Default to 1.0. Ignored for two-sample tests.}
 
 \item{alternative}{a character string specifying the alternative hypothesis,
 one of \code{"two.sided"}, \code{"less"}, or \code{"greater"}.}
 
-\item{conf.level}{confidence level for the confidence interval.}
+\item{conf.level}{confidence level for the confidence interval. For
+one-sample tests, the interval is the score confidence interval for the
+rate.}
 
 \item{correct}{logical; if \code{TRUE}, applies a continuity correction on
 the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
@@ -38,11 +40,9 @@ An object of class \code{"htest"} containing:
 \item{statistic}{the standardized normal statistic \code{z}.}
 \item{parameter}{degrees of freedom (\code{df = 1}).}
 \item{p.value}{the p-value.}
-\item{conf.int}{a confidence interval for the difference between the two
-  rates, \eqn{\lambda_1-\lambda_2}, for two-sample tests, obtained by
-  inverting the score-type normal approximation on the count scale. This is
-  closer to a score (Wilson-type) interval for Poisson mean, then rescaled
-  to the rate.}
+\item{conf.int}{a confidence interval for the rate in one-sample tests or
+  for the difference between rates, \eqn{\lambda_1-\lambda_2}, in two-sample
+  tests.}
 \item{estimate}{estimated rate (one-sample) or estimated rates (two-sample).}
 \item{null.value}{the null rate (one-sample) or the null rate difference
   \eqn{\lambda_1-\lambda_2=0} (two-sample).}
@@ -65,7 +65,7 @@ where \eqn{c} is 0 if \code{correct = FALSE} and is a continuity correction on
 the count scale if \code{correct = TRUE}. Two-sided p-values use
 \eqn{2\{1-\Phi(|Z|)\}}.
 
-#' Two-sample test:
+Two-sample test:
 Assume independent \eqn{X_1 \sim \mathrm{Pois}(\lambda_1 T_1)} and
 \eqn{X_2 \sim \mathrm{Pois}(\lambda_2 T_2)} with known exposures
 \eqn{T_1} and \eqn{T_2}. The null hypothesis is
@@ -95,9 +95,9 @@ The continuity correction affects the hypothesis test but not the
 confidence interval for \eqn{\Delta}.
 
 Confidence intervals:
-For one-sample tests, the confidence interval is for \eqn{\lambda} and is
-obtained by inverting the same normal approximation on the count scale for
-\eqn{\mu=\lambda T}, then dividing by \eqn{T}.
+For one-sample tests, the confidence interval is the score interval for
+\eqn{\lambda}, as computed by \code{\link{rate.1s.ci}} with
+\code{method = "score"}.
 For two-sample tests, the confidence interval is for the difference in rates
 \eqn{\lambda_1-\lambda_2}, analogous to the difference in proportions in
 \code{\link[stats]{prop.test}}.
