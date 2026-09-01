@@ -28,7 +28,8 @@ one of \code{"two.sided"}, \code{"less"}, or \code{"greater"}.}
 
 \item{conf.level}{confidence level for the confidence interval. For
 one-sample tests, the interval is the score confidence interval for the
-rate.}
+rate. For two-sample tests, the interval is the log-Wald confidence
+interval for the rate ratio.}
 
 \item{correct}{logical; if \code{TRUE}, applies a continuity correction on
 the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
@@ -37,15 +38,17 @@ to \eqn{x} in the direction determined by \code{alternative}. For
 }
 \value{
 An object of class \code{"htest"} containing:
-\item{statistic}{the standardized normal statistic \code{z}.}
+\item{statistic}{the standardized normal statistic \code{z} for one-sample
+  tests or the chi-square statistic from \code{\link[stats]{prop.test}} for
+  two-sample tests.}
 \item{parameter}{degrees of freedom (\code{df = 1}).}
 \item{p.value}{the p-value.}
 \item{conf.int}{a confidence interval for the rate in one-sample tests or
-  for the difference between rates, \eqn{\lambda_1-\lambda_2}, in two-sample
-  tests.}
-\item{estimate}{estimated rate (one-sample) or estimated rates (two-sample).}
-\item{null.value}{the null rate (one-sample) or the null rate difference
-  \eqn{\lambda_1-\lambda_2=0} (two-sample).}
+  for the rate ratio, \eqn{\lambda_1/\lambda_2}, in two-sample tests.}
+\item{estimate}{estimated rate (one-sample) or estimated rates and rate ratio
+  (two-sample).}
+\item{null.value}{the null rate (one-sample) or the null rate ratio
+  \eqn{\lambda_1/\lambda_2=1} (two-sample).}
 \item{alternative}{the alternative hypothesis.}
 \item{method}{a character string describing the test.}
 \item{data.name}{a character string describing the data.}
@@ -83,24 +86,24 @@ and applies the same large-sample normal approximation as
 to obtain the test statistic and p-value.
 
 For estimation and confidence intervals, the inference target is the
-difference between the two rates,
-\eqn{\Delta = \lambda_1 - \lambda_2}.
+rate ratio,
+\eqn{\rho = \lambda_1 / \lambda_2}.
 The point estimate is
-\eqn{\hat\Delta = X_1/T_1 - X_2/T_2}, and the confidence interval is
-constructed using a normal approximation with estimated standard error
+\eqn{\hat\rho = (X_1/T_1) / (X_2/T_2)}, and the confidence interval is
+constructed on the log scale using estimated standard error
 \deqn{
-\sqrt{X_1/T_1^2 + X_2/T_2^2}.
+\sqrt{1/X_1 + 1/X_2}.
 }
 The continuity correction affects the hypothesis test but not the
-confidence interval for \eqn{\Delta}.
+confidence interval for \eqn{\rho}.
 
 Confidence intervals:
 For one-sample tests, the confidence interval is the score interval for
 \eqn{\lambda}, as computed by \code{\link{rate.1s.ci}} with
 \code{method = "score"}.
-For two-sample tests, the confidence interval is for the difference in rates
-\eqn{\lambda_1-\lambda_2}, analogous to the difference in proportions in
-\code{\link[stats]{prop.test}}.
+For two-sample tests, the confidence interval is for the rate ratio
+\eqn{\lambda_1/\lambda_2}. The log-Wald interval requires both event counts
+to be positive.
 }
 \examples{
 ## One-sample test: compare observed rate to a reference unit rate

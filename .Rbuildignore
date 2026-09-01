@@ -1,4 +1,5 @@
 \.Rcheck$
+\.log$
 \.Rout$
 \.Rproj$
 \.tar\.gz$

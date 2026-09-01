@@ -14,7 +14,8 @@
 #'   one of \code{"two.sided"}, \code{"less"}, or \code{"greater"}.
 #' @param conf.level confidence level for the confidence interval. For
 #'   one-sample tests, the interval is the score confidence interval for the
-#'   rate.
+#'   rate. For two-sample tests, the interval is the log-Wald confidence
+#'   interval for the rate ratio.
 #' @param correct logical; if \code{TRUE}, applies a continuity correction on
 #'   the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
 #'   to \eqn{x} in the direction determined by \code{alternative}. For
@@ -48,36 +49,38 @@
 #' to obtain the test statistic and p-value.
 #'
 #' For estimation and confidence intervals, the inference target is the
-#' difference between the two rates,
-#' \eqn{\Delta = \lambda_1 - \lambda_2}.
+#' rate ratio,
+#' \eqn{\rho = \lambda_1 / \lambda_2}.
 #' The point estimate is
-#' \eqn{\hat\Delta = X_1/T_1 - X_2/T_2}, and the confidence interval is
-#' constructed using a normal approximation with estimated standard error
+#' \eqn{\hat\rho = (X_1/T_1) / (X_2/T_2)}, and the confidence interval is
+#' constructed on the log scale using estimated standard error
 #' \deqn{
-#' \sqrt{X_1/T_1^2 + X_2/T_2^2}.
+#' \sqrt{1/X_1 + 1/X_2}.
 #' }
 #' The continuity correction affects the hypothesis test but not the
-#' confidence interval for \eqn{\Delta}.
+#' confidence interval for \eqn{\rho}.
 #'
 #' Confidence intervals:
 #' For one-sample tests, the confidence interval is the score interval for
 #' \eqn{\lambda}, as computed by \code{\link{rate.1s.ci}} with
 #' \code{method = "score"}.
-#' For two-sample tests, the confidence interval is for the difference in rates
-#' \eqn{\lambda_1-\lambda_2}, analogous to the difference in proportions in
-#' \code{\link[stats]{prop.test}}.
+#' For two-sample tests, the confidence interval is for the rate ratio
+#' \eqn{\lambda_1/\lambda_2}. The log-Wald interval requires both event counts
+#' to be positive.
 #'
 #' @return
 #' An object of class \code{"htest"} containing:
-#' \item{statistic}{the standardized normal statistic \code{z}.}
+#' \item{statistic}{the standardized normal statistic \code{z} for one-sample
+#'   tests or the chi-square statistic from \code{\link[stats]{prop.test}} for
+#'   two-sample tests.}
 #' \item{parameter}{degrees of freedom (\code{df = 1}).}
 #' \item{p.value}{the p-value.}
 #' \item{conf.int}{a confidence interval for the rate in one-sample tests or
-#'   for the difference between rates, \eqn{\lambda_1-\lambda_2}, in two-sample
-#'   tests.}
-#' \item{estimate}{estimated rate (one-sample) or estimated rates (two-sample).}
-#' \item{null.value}{the null rate (one-sample) or the null rate difference
-#'   \eqn{\lambda_1-\lambda_2=0} (two-sample).}
+#'   for the rate ratio, \eqn{\lambda_1/\lambda_2}, in two-sample tests.}
+#' \item{estimate}{estimated rate (one-sample) or estimated rates and rate ratio
+#'   (two-sample).}
+#' \item{null.value}{the null rate (one-sample) or the null rate ratio
+#'   \eqn{\lambda_1/\lambda_2=1} (two-sample).}
 #' \item{alternative}{the alternative hypothesis.}
 #' \item{method}{a character string describing the test.}
 #' \item{data.name}{a character string describing the data.}
@@ -170,6 +173,9 @@ rate.test <- function(x, T = 1.0, r = 1.0,
       if (x1 + x2 == 0) {
           stop("at least one event is required for the 2-sample test")
       }
+      if (x1 == 0 || x2 == 0) {
+          stop("log-Wald confidence interval for the rate ratio requires positive event counts")
+      }
       
       ## Conditional binomial test under H0 via prop.test()
       n  <- x1 + x2
@@ -178,16 +184,16 @@ rate.test <- function(x, T = 1.0, r = 1.0,
       pt <- stats::prop.test(x = x1, n = n,p = p0, alternative = alternative,
                              conf.level = conf.level, correct = correct)
       
-      ## Estimation target: difference in rates
+      ## Estimation target: rate ratio
       rate1 <- x1 / T1
       rate2 <- x2 / T2
-      diff_hat <- rate1 - rate2
+      rate_ratio <- rate1 / rate2
+      se_log_ratio <- sqrt(1 / x1 + 1 / x2)
+      conf.int <- exp(log(rate_ratio) + c(-1, 1) * zcrit * se_log_ratio)
       
-      se_diff <- sqrt(x1 / T1^2 + x2 / T2^2)
-      conf.int <- diff_hat + c(-1, 1) * zcrit * se_diff
-      
-      estimate <- c("rate 1" = rate1, "rate 2" = rate2)
-      null.value <- c("rate difference" = 0)
+      estimate <- c("rate 1" = rate1, "rate 2" = rate2,
+                    "rate ratio" = rate_ratio)
+      null.value <- c("rate ratio" = 1)
       
       ## Ingredients (shared names)
       statistic <- pt$statistic
@@ -196,7 +202,7 @@ rate.test <- function(x, T = 1.0, r = 1.0,
       method <- paste(
           "2-sample test for equality of Poisson rates",
           "(conditional binomial normal approximation);",
-          "CI for rate difference by normal approximation"
+          "CI for rate ratio by log-Wald approximation"
       )
       data.name <- paste0(
           "x = c(", x1, ", ", x2, "), ",

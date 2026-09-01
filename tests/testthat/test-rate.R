@@ -42,6 +42,18 @@ test_that("rate.test handles one- and two-sample tests", {
   expect_equal(two_sample$p.value, 0.2122691, tolerance = 1e-6)
 })
 
+test_that("rate.test reports a log-Wald rate ratio interval for two samples", {
+  result <- rate.test(x = c(151, 55), T = c(57518.1, 74573.5))
+
+  expect_equal(unname(result$estimate["rate ratio"]), 3.559543,
+               tolerance = 1e-6)
+  expect_equal(as.numeric(result$conf.int), c(2.614178, 4.846780),
+               tolerance = 1e-6)
+  expect_equal(unname(result$null.value), 1)
+  expect_named(result$null.value, "rate ratio")
+  expect_match(result$method, "rate ratio by log-Wald")
+})
+
 test_that("rate.test uses score interval for one-sample rate", {
   greater <- rate.test(x = 411, T = 25800, r = 0.0119,
                        alternative = "greater")
@@ -74,4 +86,6 @@ test_that("rate functions validate inputs", {
   expect_error(rate.test(x = c(1, 2), T = 1), "same length")
   expect_error(rate.test(x = c(0, 0), T = c(1, 1)),
                "at least one event")
+  expect_error(rate.test(x = c(0, 2), T = c(1, 1)),
+               "requires positive event counts")
 })
