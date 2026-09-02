@@ -63,14 +63,16 @@
 #' ## Example: Surfactant use and birthweight (RDS data)
 #' data(rds, package = "ibist")
 #'
-#' fit <- glm(death ~ surf + bwt, data = rds, weights = count,
-#'            family = "binomial")
+#' fit <- glm(death ~ surf + bwt,
+#'   data = rds, weights = count,
+#'   family = "binomial"
+#' )
 #'
 #' ## Pearson GoF test with pooling (default)
-#' (res <- gof_logistic_pearson(fit))
+#' (res <- logistic_gof(fit))
 #'
 #' ## Without pooling (may be unstable if small groups exist)
-#' gof_logistic_pearson(fit, pool = FALSE)
+#' logistic_gof(fit, pool = FALSE)
 #'
 #' ## Inspect grouped diagnostics
 #' res$groups
@@ -81,8 +83,8 @@
 #' @importFrom stats model.frame model.response model.weights
 #' @importFrom stats fitted model.matrix aggregate coef pchisq formula
 #' @export
-gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
-                                 pool = TRUE) {
+logistic_gof <- function(fit, min_n = 5, min_expected = 5,
+                         pool = TRUE) {
   ## --- Sanity checks ---
   if (!inherits(fit, "glm")) {
     stop("fit must be a glm object.")
@@ -96,22 +98,26 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
     stop("'pool' must be TRUE or FALSE.")
   }
 
-  if (!is.numeric(min_n) || length(min_n) != 1L ||
-      !is.finite(min_n) || min_n <= 0) {
+  if (
+    !is.numeric(min_n) || length(min_n) != 1L ||
+      !is.finite(min_n) || min_n <= 0
+  ) {
     stop("'min_n' must be a single positive number.")
   }
 
-  if (!is.numeric(min_expected) || length(min_expected) != 1L ||
-      !is.finite(min_expected) || min_expected < 0) {
+  if (
+    !is.numeric(min_expected) || length(min_expected) != 1L ||
+      !is.finite(min_expected) || min_expected < 0
+  ) {
     stop("'min_expected' must be a single non-negative number.")
   }
 
   mf <- model.frame(fit)
-  y  <- model.response(mf)
-  w  <- model.weights(mf)
+  y <- model.response(mf)
+  w <- model.weights(mf)
 
   response <- binomial_response_counts(y, w)
-  O_i <- response$observed
+  observed_i <- response$observed
   n_i <- response$n
 
   pi_hat <- fitted(fit)
@@ -121,10 +127,10 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
   }
 
   ## --- Construct groups ---
-  X <- model.matrix(fit)
-  key <- apply(X, 1, paste, collapse = ":")
+  model_mat <- model.matrix(fit)
+  key <- apply(model_mat, 1, paste, collapse = ":")
 
-  df <- data.frame(key = key, O = O_i, n = n_i, pi_hat = pi_hat)
+  df <- data.frame(key = key, O = observed_i, n = n_i, pi_hat = pi_hat)
 
   agg <- aggregate(
     cbind(O = O, n = n, piw = pi_hat * n) ~ key,
@@ -132,58 +138,59 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
     FUN = sum
   )
 
-  O <- agg$O
+  observed <- agg$O
   n <- agg$n
   pi_g <- agg$piw / n
 
-  df_group <- data.frame(O = O, n = n, pi_hat = pi_g)
+  df_group <- data.frame(O = observed, n = n, pi_hat = pi_g)
 
-  J <- nrow(df_group)
+  n_patterns <- nrow(df_group)
   k <- fit$rank
   if (is.null(k)) {
     k <- sum(!is.na(coef(fit)))
   }
 
-  if (J <= k) {
+  if (n_patterns <= k) {
     stop("Not enough unique covariate patterns: J <= k.")
   }
 
-  if (J == NROW(y)) {
+  if (n_patterns == NROW(y)) {
     warning("No replication detected; Pearson GoF not appropriate.")
   }
 
   ## --- Pool if requested ---
   if (pool) {
     df_group <- pool_groups(df_group,
-                            min_n = min_n,
-                            min_expected = min_expected)
+      min_n = min_n,
+      min_expected = min_expected
+    )
   }
 
   ## --- Check post-pooling ---
-  G <- nrow(df_group)
-  df_chi <- G - k
+  n_groups <- nrow(df_group)
+  df_chi <- n_groups - k
 
   if (df_chi <= 0) {
     stop("Degrees of freedom <= 0 after pooling.")
   }
 
   ## --- Compute statistic ---
-  E <- df_group$n * df_group$pi_hat
-  V <- df_group$n * df_group$pi_hat * (1 - df_group$pi_hat)
+  expected <- df_group$n * df_group$pi_hat
+  variance <- df_group$n * df_group$pi_hat * (1 - df_group$pi_hat)
 
-  if (any(V == 0)) {
+  if (any(variance == 0)) {
     stop("Zero variance encountered; adjust pooling thresholds.")
   }
 
-  TP <- sum((df_group$O - E)^2 / V)
-  pval <- 1 - pchisq(TP, df_chi)
+  statistic <- sum((df_group$O - expected)^2 / variance)
+  pval <- 1 - pchisq(statistic, df_chi)
 
   ## --- Return htest ---
   res <- list(
-    statistic = c(X2 = TP),
+    statistic = c(X2 = statistic),
     parameter = c(df = df_chi),
-    p.value   = pval,
-    method    = paste(
+    p.value = pval,
+    method = paste(
       "Pearson Chi-squared GoF for logistic regression",
       if (pool) "(with pooling)" else ""
     ),
@@ -192,9 +199,9 @@ gof_logistic_pearson <- function(fit, min_n = 5, min_expected = 5,
 
   # attach diagnostics
   res$observed <- df_group$O
-  res$expected <- E
-  res$group_n  <- df_group$n
-  res$groups   <- df_group
+  res$expected <- expected
+  res$group_n <- df_group$n
+  res$groups <- df_group
 
   class(res) <- "htest"
   res
@@ -215,13 +222,18 @@ binomial_response_counts <- function(y, w = NULL) {
     if (is.null(w)) {
       w <- rep(1, nrow(y))
     } else if (any(!is.finite(w)) || any(w <= 0)) {
-        stop("weights must be positive.")
+      stop("weights must be positive.")
     }
     return(list(observed = y[, 1] * w, n = n * w))
   }
 
   if (!is.numeric(y) || any(!is.finite(y)) || any(y < 0 | y > 1)) {
-    stop("Response must be binary, a proportion with weights, or a two-column matrix.")
+    stop(
+      paste(
+        "Response must be binary, a proportion with weights,",
+        "or a two-column matrix."
+      )
+    )
   }
 
   has_weights <- !is.null(w)
@@ -238,7 +250,6 @@ binomial_response_counts <- function(y, w = NULL) {
 }
 
 pool_groups <- function(df, min_n = 5, min_expected = 5) {
-
   if (!all(c("O", "n", "pi_hat") %in% names(df))) {
     stop("df must contain O, n, pi_hat.")
   }
@@ -247,30 +258,32 @@ pool_groups <- function(df, min_n = 5, min_expected = 5) {
   df <- df[order(df$pi_hat), ]
 
   pooled <- list()
-  cur_O <- 0
+  current_observed <- 0
   cur_n <- 0
   cur_piw <- 0
 
   for (i in seq_len(nrow(df))) {
-    cur_O <- cur_O + df$O[i]
+    current_observed <- current_observed + df$O[i]
     cur_n <- cur_n + df$n[i]
     cur_piw <- cur_piw + df$n[i] * df$pi_hat[i]
 
     pi_curr <- cur_piw / cur_n
-    E_curr  <- cur_n * pi_curr
+    current_expected <- cur_n * pi_curr
 
-    if (cur_n >= min_n && E_curr >= min_expected) {
+    if (cur_n >= min_n && current_expected >= min_expected) {
       pooled[[length(pooled) + 1]] <-
-        data.frame(O = cur_O, n = cur_n, pi_hat = pi_curr)
-      cur_O <- 0; cur_n <- 0; cur_piw <- 0
+        data.frame(O = current_observed, n = cur_n, pi_hat = pi_curr)
+      current_observed <- 0
+      cur_n <- 0
+      cur_piw <- 0
     }
   }
 
-  # leftover → merge into last group
+  # Merge leftover rows into the last group.
   if (cur_n > 0) {
     if (length(pooled) == 0) {
       pooled[[1]] <- data.frame(
-        O = cur_O,
+        O = current_observed,
         n = cur_n,
         pi_hat = cur_piw / cur_n
       )
@@ -280,7 +293,7 @@ pool_groups <- function(df, min_n = 5, min_expected = 5) {
       new_pi <- (last$n * last$pi_hat + cur_piw) / new_n
 
       pooled[[length(pooled)]] <- data.frame(
-        O = last$O + cur_O,
+        O = last$O + current_observed,
         n = new_n,
         pi_hat = new_pi
       )

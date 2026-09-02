@@ -1,9 +1,11 @@
-test_that("gof_logistic_pearson handles binary responses with weights", {
+test_that("logistic_gof handles binary responses with weights", {
   data(rds, package = "ibist")
-  fit <- glm(death ~ surf + bwt, data = rds, weights = count,
-             family = "binomial")
+  fit <- glm(death ~ surf + bwt,
+    data = rds, weights = count,
+    family = "binomial"
+  )
 
-  result <- gof_logistic_pearson(fit, pool = FALSE)
+  result <- logistic_gof(fit, pool = FALSE)
 
   expect_s3_class(result, "htest")
   expect_named(result$statistic, "X2")
@@ -12,7 +14,7 @@ test_that("gof_logistic_pearson handles binary responses with weights", {
   expect_equal(sum(result$group_n), sum(rds$count))
 })
 
-test_that("gof_logistic_pearson handles grouped two-column responses", {
+test_that("logistic_gof handles grouped two-column responses", {
   data(rds, package = "ibist")
   grouped <- reshape(
     rds,
@@ -24,19 +26,22 @@ test_that("gof_logistic_pearson handles grouped two-column responses", {
   names(grouped) <- sub("count\\.0", "alive_count", names(grouped))
 
   fit <- glm(cbind(death_count, alive_count) ~ surf + bwt,
-             data = grouped, family = "binomial")
+    data = grouped, family = "binomial"
+  )
   expect_warning(
-    result <- gof_logistic_pearson(fit, pool = FALSE),
+    result <- logistic_gof(fit, pool = FALSE),
     "No replication detected"
   )
 
   expect_s3_class(result, "htest")
   expect_equal(sum(result$observed), sum(grouped$death_count))
-  expect_equal(sum(result$group_n),
-               sum(grouped$death_count + grouped$alive_count))
+  expect_equal(
+    sum(result$group_n),
+    sum(grouped$death_count + grouped$alive_count)
+  )
 })
 
-test_that("gof_logistic_pearson handles proportion responses with weights", {
+test_that("logistic_gof handles proportion responses with weights", {
   data(rds, package = "ibist")
   grouped <- reshape(
     rds,
@@ -49,10 +54,12 @@ test_that("gof_logistic_pearson handles proportion responses with weights", {
   grouped$total <- grouped$death_count + grouped$alive_count
   grouped$death_prop <- grouped$death_count / grouped$total
 
-  fit <- glm(death_prop ~ surf + bwt, data = grouped,
-             weights = total, family = "binomial")
+  fit <- glm(death_prop ~ surf + bwt,
+    data = grouped,
+    weights = total, family = "binomial"
+  )
   expect_warning(
-    result <- gof_logistic_pearson(fit, pool = FALSE),
+    result <- logistic_gof(fit, pool = FALSE),
     "No replication detected"
   )
 
@@ -61,33 +68,41 @@ test_that("gof_logistic_pearson handles proportion responses with weights", {
   expect_equal(sum(result$group_n), sum(grouped$total))
 })
 
-test_that("gof_logistic_pearson validates model type", {
-  expect_error(gof_logistic_pearson(lm(mpg ~ wt, data = mtcars)),
-               "glm")
+test_that("logistic_gof validates model type", {
+  expect_error(
+    logistic_gof(lm(mpg ~ wt, data = mtcars)),
+    "glm"
+  )
 })
 
-test_that("gof_logistic_pearson validates control arguments", {
+test_that("logistic_gof validates control arguments", {
   data(rds, package = "ibist")
-  fit <- glm(death ~ surf + bwt, data = rds, weights = count,
-             family = "binomial")
+  fit <- glm(death ~ surf + bwt,
+    data = rds, weights = count,
+    family = "binomial"
+  )
 
-  expect_error(gof_logistic_pearson(fit, min_n = 0), "min_n")
-  expect_error(gof_logistic_pearson(fit, min_expected = -1),
-               "min_expected")
-  expect_error(gof_logistic_pearson(fit, pool = NA), "pool")
+  expect_error(logistic_gof(fit, min_n = 0), "min_n")
+  expect_error(
+    logistic_gof(fit, min_expected = -1),
+    "min_expected"
+  )
+  expect_error(logistic_gof(fit, pool = NA), "pool")
 })
 
-test_that("gof_logistic_pearson validates binomial response encodings", {
+test_that("logistic_gof validates binomial response encodings", {
   prop_data <- data.frame(y = c(0.25, 0.75), x = c(0, 1))
   fit_prop <- suppressWarnings(
     glm(y ~ x, data = prop_data, family = "binomial")
   )
 
-  expect_error(gof_logistic_pearson(fit_prop),
-               "Proportion responses require binomial weights")
+  expect_error(
+    logistic_gof(fit_prop),
+    "Proportion responses require binomial weights"
+  )
 })
 
-test_that("gof_logistic_pearson uses fitted model rank for degrees of freedom", {
+test_that("logistic_gof uses fitted model rank for degrees of freedom", {
   data <- data.frame(
     x = rep(1:6, each = 2),
     y = rep(c(0, 1), 6)
@@ -95,7 +110,7 @@ test_that("gof_logistic_pearson uses fitted model rank for degrees of freedom", 
   data$x_dup <- data$x
   fit <- glm(y ~ x + x_dup, data = data, family = "binomial")
 
-  result <- gof_logistic_pearson(fit, pool = FALSE)
+  result <- logistic_gof(fit, pool = FALSE)
 
   expect_true(anyNA(coef(fit)))
   expect_equal(unname(result$parameter), 4)
