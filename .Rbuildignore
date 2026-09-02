@@ -33,5 +33,5 @@
 ~$
 
 data-raw/
-^ibist-book$
+^ibist-book(/|$)
 ^priority\.md$
