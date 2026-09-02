@@ -2,6 +2,7 @@
 
 export(demo_clt)
 export(logistic_gof)
+export(or.2x2.ci)
 export(power.p1s.test)
 export(power.p2s.test)
 export(rate.1s.ci)
