@@ -30,6 +30,29 @@ test_that("rate.1s.ci Wilson-Hilferty continuity correction uses midpoint", {
                tolerance = 1e-7)
 })
 
+test_that("rate.2s.ci returns log-Wald rate ratio intervals", {
+  result <- rate.2s.ci(x = c(151, 55), T = c(57518.1, 74573.5))
+
+  expect_s3_class(result, "htest")
+  expect_equal(unname(result$estimate["rate ratio"]), 3.559543,
+               tolerance = 1e-6)
+  expect_equal(as.numeric(result$conf.int), c(2.614178, 4.846780),
+               tolerance = 1e-6)
+})
+
+test_that("rate.2s.ci returns transformed binomial intervals", {
+  score <- rate.2s.ci(x = c(151, 55), T = c(57518.1, 74573.5),
+                      method = "score")
+  exact <- rate.2s.ci(x = c(9, 12), T = c(1817.6, 7496.3),
+                      method = "exact")
+  poisson <- poisson.test(x = c(9, 12), T = c(1817.6, 7496.3))
+
+  expect_equal(as.numeric(score$conf.int), c(2.617350, 4.840907),
+               tolerance = 1e-6)
+  expect_equal(as.numeric(exact$conf.int), as.numeric(poisson$conf.int),
+               tolerance = 1e-12)
+})
+
 test_that("rate.test handles one- and two-sample tests", {
   one_sample <- rate.test(x = 411, T = 25800, r = 0.0119,
                           correct = FALSE)
@@ -83,6 +106,13 @@ test_that("rate.test handles one-sided alternatives", {
 test_that("rate functions validate inputs", {
   expect_error(rate.1s.ci(-1), "non-negative integer")
   expect_error(rate.1s.ci(1, T = 0), "positive")
+  expect_error(rate.2s.ci(c(1, 2, 3)), "length-2")
+  expect_error(rate.2s.ci(c(1, 2), T = c(1, 0)), "positive exposures")
+  expect_error(rate.2s.ci(c(0, 0)), "at least one event")
+  expect_error(rate.2s.ci(c(0, 2), method = "log"),
+               "requires positive event counts")
+  expect_equal(as.numeric(rate.2s.ci(c(0, 2), method = "score")$conf.int[1]),
+               0)
   expect_error(rate.test(x = c(1, 2), T = 1), "same length")
   expect_error(rate.test(x = c(0, 0), T = c(1, 1)),
                "at least one event")

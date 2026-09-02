@@ -119,5 +119,6 @@ rate.test(x = 411, T = 25800, r = 0.0119, alternative = "greater")
 
 }
 \seealso{
-\code{\link[stats]{prop.test}}, \code{\link[stats]{poisson.test}}
+\code{\link{rate.2s.ci}}, \code{\link[stats]{prop.test}},
+\code{\link[stats]{poisson.test}}
 }

@@ -86,7 +86,8 @@
 #' \item{data.name}{a character string describing the data.}
 #'
 #' @seealso
-#' \code{\link[stats]{prop.test}}, \code{\link[stats]{poisson.test}}
+#' \code{\link{rate.2s.ci}}, \code{\link[stats]{prop.test}},
+#' \code{\link[stats]{poisson.test}}
 #'
 #' @examples
 #' ## One-sample test: compare observed rate to a reference unit rate
@@ -117,8 +118,6 @@ rate.test <- function(x, T = 1.0, r = 1.0,
       conf.level <= 0 || conf.level >= 1) {
     stop("'conf.level' must be a single number in (0, 1)")
   }
-
-  zcrit <- qnorm(1 - (1 - conf.level) / 2)
 
   if (length(x) == 1L) {
       ## --- One-sample: H0: lambda = r (unit rate)
@@ -173,26 +172,20 @@ rate.test <- function(x, T = 1.0, r = 1.0,
       if (x1 + x2 == 0) {
           stop("at least one event is required for the 2-sample test")
       }
-      if (x1 == 0 || x2 == 0) {
-          stop("log-Wald confidence interval for the rate ratio requires positive event counts")
-      }
+
+      ci <- rate.2s.ci(x, T, conf.level = conf.level, method = "log")
       
       ## Conditional binomial test under H0 via prop.test()
       n  <- x1 + x2
       p0 <- T1 / (T1 + T2)
       
       pt <- stats::prop.test(x = x1, n = n,p = p0, alternative = alternative,
-                             conf.level = conf.level, correct = correct)
+                              conf.level = conf.level, correct = correct)
       
       ## Estimation target: rate ratio
-      rate1 <- x1 / T1
-      rate2 <- x2 / T2
-      rate_ratio <- rate1 / rate2
-      se_log_ratio <- sqrt(1 / x1 + 1 / x2)
-      conf.int <- exp(log(rate_ratio) + c(-1, 1) * zcrit * se_log_ratio)
+      conf.int <- ci$conf.int
       
-      estimate <- c("rate 1" = rate1, "rate 2" = rate2,
-                    "rate ratio" = rate_ratio)
+      estimate <- ci$estimate
       null.value <- c("rate ratio" = 1)
       
       ## Ingredients (shared names)

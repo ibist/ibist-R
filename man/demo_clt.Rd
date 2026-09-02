@@ -39,11 +39,11 @@ different sample sizes and overlays the standard normal density.
 }
 \examples{
 set.seed(123)
-demo_clt(runif, n = c(5, 10, 20, 40), nrep = 1000, min = 0, max = 1,
+demo_clt(runif, n = c(5, 20), nrep = 100, min = 0, max = 1,
          pmean = 0.5, psd = sqrt(1 / 12))
 
-demo_clt(rgamma, n = c(5, 10, 20, 40), shape = 2, rate = 1,
-         nrep = 1000, pmean = 2, psd = sqrt(2)
+demo_clt(rgamma, n = c(5, 20), shape = 2, rate = 1,
+         nrep = 100, pmean = 2, psd = sqrt(2)
 )
 
 }
