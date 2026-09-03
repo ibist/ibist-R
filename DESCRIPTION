@@ -1,0 +1,34 @@
+Package: ibist
+Title: Data and Functions for Introduction to Biostatistics with R
+Version: 0.1-0
+Authors@R: c(
+    person(given = "Elizabeth", family = "Schifano",
+           role = c("aut"),
+           comment = c(ORCID = "0000-0002-9793-332X")),
+    person(given = "Jun", family = "Yan",
+           email = "jun.yan@uconn.edu",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-4401-7296"))
+    )
+Author: Elizabeth Schifano [aut] (ORCID:
+    <https://orcid.org/0000-0002-9793-332X>),
+    Jun Yan [aut, cre] (ORCID:
+    <https://orcid.org/0000-0003-4401-7296>)
+Maintainer: Jun Yan <jun.yan@uconn.edu>
+Description: Provides datasets and supporting functions for the book
+    Introduction to Biostatistics with R by Schifano and Yan (2026+),
+    published by Taylor & Francis. The package is intended for teaching
+    introductory biostatistics and for reproducing examples in the text.
+Depends:
+    R (>= 4.4.0)
+VignetteBuilder: knitr
+License: GPL (>= 3)
+URL: https://github.com/ibist/ibist-R
+BugReports: https://github.com/ibist/ibist-R/issues
+Imports: stats, Rcpp
+LinkingTo: Rcpp
+Suggests: ggplot2, knitr, rlang, testthat (>= 3.0.0)
+LazyData: true
+Encoding: UTF-8
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
