@@ -47,7 +47,7 @@ four-way contingency table with cell counts.
 The data have a 2 x 3 x 2 x 2 factorial structure:
 oral hygiene (2 levels), fluoride level (3 levels),
 amoxicillin use (2 levels), and fluorosis status
-(2 levels). The counts sum to 579 subjects.
+(2 levels). The counts sum to 308 subjects.
 }
 \examples{
 data(fluorosis)

@@ -21,6 +21,7 @@ test_that("aggregated count datasets have valid counts and exposure", {
   data(rds, package = "ibist")
 
   expect_true(all(fluorosis$count >= 0))
+  expect_equal(sum(fluorosis$count), 308L)
   expect_true(all(midbp$cases >= 0))
   expect_true(all(midbp$pyears > 0))
   expect_equal(range(midbp$dbp), c(1L, 8L))
