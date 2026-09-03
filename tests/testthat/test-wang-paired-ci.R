@@ -1,10 +1,10 @@
 test_that("wang.paired.ci matches published ExactCIdiff examples", {
-  ci1 <- wang.paired.ci(3, 1, 0, conf.level = 0.95,
-                        precision = 0.0001)
-  ci2 <- wang.paired.ci(2, 0, 2, conf.level = 0.95,
-                        precision = 0.0001)
-  ci3 <- wang.paired.ci(1, 1, 2, conf.level = 0.95,
-                        precision = 0.0001)
+  ci1 <- ibist:::wang.paired.ci(3, 1, 0, conf.level = 0.95,
+                                precision = 0.0001)
+  ci2 <- ibist:::wang.paired.ci(2, 0, 2, conf.level = 0.95,
+                                precision = 0.0001)
+  ci3 <- ibist:::wang.paired.ci(1, 1, 2, conf.level = 0.95,
+                                precision = 0.0001)
 
   expect_equal(ci1$estimate, 0.75)
   expect_equal(ci1$ExactCI, c(-0.2494, 0.9937), tolerance = 1e-4)
@@ -22,7 +22,7 @@ test_that("wang.paired.reject agrees with individual interval inversion", {
   individual <- vapply(
     seq_len(nrow(tabs)),
     function(i) {
-      ci <- wang.paired.ci(
+      ci <- ibist:::wang.paired.ci(
         n10 = tabs$n10[i],
         t = tabs$n11[i] + tabs$n00[i],
         n01 = tabs$n01[i],
@@ -33,13 +33,13 @@ test_that("wang.paired.reject agrees with individual interval inversion", {
     logical(1)
   )
 
-  bulk <- wang.paired.reject(tabs, precision = 0.0001)
+  bulk <- ibist:::wang.paired.reject(tabs, precision = 0.0001)
   expect_identical(bulk, individual)
 })
 
 test_that("wang.paired.ci validates inputs", {
-  expect_error(wang.paired.ci(-1, 1, 0), "nonnegative")
-  expect_error(wang.paired.ci(1, 1, 0, conf.level = 1), "conf.level")
-  expect_error(wang.paired.ci(1, 1, 0, grid.one = 1), "grid")
-  expect_error(wang.paired.reject(data.frame(x = 1)), "n11")
+  expect_error(ibist:::wang.paired.ci(-1, 1, 0), "nonnegative")
+  expect_error(ibist:::wang.paired.ci(1, 1, 0, conf.level = 1), "conf.level")
+  expect_error(ibist:::wang.paired.ci(1, 1, 0, grid.one = 1), "grid")
+  expect_error(ibist:::wang.paired.reject(data.frame(x = 1)), "n11")
 })

@@ -9,7 +9,7 @@ prop.paired.ci(
   c,
   n,
   conf.level = 0.95,
-  method = c("score", "wald", "waldcc", "agresti-min"),
+  method = c("score", "wald", "waldcc", "agresti-min", "wang"),
   ...
 )
 }
@@ -23,9 +23,12 @@ prop.paired.ci(
 \item{conf.level}{Confidence level for the interval.}
 
 \item{method}{Method for confidence interval. One of \code{"score"},
-\code{"wald"}, \code{"waldcc"}, or \code{"agresti-min"}.}
+\code{"wald"}, \code{"waldcc"}, \code{"agresti-min"}, or
+\code{"wang"}.}
 
-\item{...}{Reserved for future extensions.}
+\item{...}{Additional arguments for the selected method. For
+\code{"score"}, these include \code{tol}; for \code{"wang"}, they
+include \code{precision}, \code{grid.one}, and \code{grid.two}.}
 }
 \value{
 An object of class \code{"htest"}.
@@ -41,12 +44,29 @@ estimated paired difference is \eqn{(b - c) / n}. The \code{"wald"} and
 \code{"agresti-min"} method applies the Wald calculation to
 \eqn{b + 1/2}, \eqn{c + 1/2}, and \eqn{n + 2}. The \code{"score"} method
 inverts Tango's score statistic by numerically maximizing the multinomial
-likelihood subject to the candidate difference.
+likelihood subject to the candidate difference. The \code{"wang"} method
+computes Wang's exact interval based on an inductive ordering of the paired
+sample space. This method can be time-consuming when the sample size is
+moderate because it searches over nuisance parameters and refines the
+confidence limits numerically.
 }
+\section{Method-specific arguments}{
+
+For \code{method = "score"}, \code{tol} is the numerical tolerance used
+when solving for the confidence limits; its default is \code{1e-8}. For
+\code{method = "wang"}, \code{precision} controls the numerical precision
+of the confidence limits (default \code{1e-5}), while \code{grid.one} and
+\code{grid.two} control the sizes of the two nuisance-parameter search
+grids (defaults \code{30} and \code{20}, respectively). Increasing these
+values can improve numerical accuracy at the cost of longer computation.
+}
+
 \examples{
 prop.paired.ci(b = 8, c = 25, n = 180)
 prop.paired.ci(b = 8, c = 25, n = 180, method = "waldcc")
 prop.paired.ci(b = 8, c = 25, n = 180, method = "agresti-min")
+prop.paired.ci(b = 3, c = 0, n = 4, method = "wang",
+                precision = 0.0001)
 
 }
 \references{
@@ -56,4 +76,8 @@ in proportions for the paired-sample design. \emph{Statistics in Medicine},
 
 Agresti, A., and Min, Y. (2005). Simple improved confidence intervals for
 comparing matched proportions. \emph{Statistics in Medicine}, 24, 729--740.
+
+Wang, W. (2012). An inductive order construction for the difference of two
+dependent proportions. \emph{Statistics & Probability Letters}, 82,
+1623--1628.
 }

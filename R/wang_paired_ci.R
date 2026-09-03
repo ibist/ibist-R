@@ -31,7 +31,7 @@ NULL
 #' wang.paired.ci(3, 1, 0, CItype = "Lower")
 #' wang.paired.ci(3, 1, 0, conf.level = 0.9)
 #'
-#' @export
+#' @noRd
 wang.paired.ci <- function(n10, t, n01, conf.level = 0.95,
                            CItype = c("Two.sided", "Lower", "Upper"),
                            precision = 0.00001,
@@ -94,7 +94,7 @@ wang.paired.ci <- function(n10, t, n01, conf.level = 0.95,
 #' tabs <- data.frame(n11 = c(0, 1), n10 = c(3, 1), n01 = c(0, 1), n00 = c(1, 1))
 #' wang.paired.reject(tabs, alpha = 0.05, precision = 0.0001)
 #'
-#' @export
+#' @noRd
 wang.paired.reject <- function(tabs, alpha = 0.05, precision = 0.00001,
                                grid.one = 30, grid.two = 20) {
   if (!is.data.frame(tabs) ||
