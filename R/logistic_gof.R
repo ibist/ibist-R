@@ -29,11 +29,14 @@
 #' @param pool Logical; if \code{TRUE}, adjacent groups (ordered by fitted
 #'   probabilities) are pooled to meet minimum thresholds. Default is
 #'   \code{TRUE}.
+#' @param ... Arguments passed to \code{logistic.gof()} by the deprecated
+#'   \code{logistic_gof()} alias.
 #'
-#' @return An object of class \code{"htest"} with components:
-#' \item{statistic}{The Pearson chi-squared statistic.}
+#' @return An object of class \code{"ibist_logistic_gof"} and \code{"htest"}
+#' with components:
+#' \item{statistic}{The Pearson chi-squared and deviance statistics.}
 #' \item{parameter}{Degrees of freedom.}
-#' \item{p.value}{p-value of the test.}
+#' \item{p.value}{The corresponding p-values.}
 #' \item{method}{Description of the test.}
 #' \item{data.name}{Description of the data.}
 #'
@@ -69,10 +72,10 @@
 #' )
 #'
 #' ## Pearson GoF test with pooling (default)
-#' (res <- logistic_gof(fit))
+#' (res <- logistic.gof(fit))
 #'
 #' ## Without pooling (may be unstable if small groups exist)
-#' logistic_gof(fit, pool = FALSE)
+#' logistic.gof(fit, pool = FALSE)
 #'
 #' ## Inspect grouped diagnostics
 #' res$groups
@@ -81,9 +84,9 @@
 #'
 #' @importFrom stats family
 #' @importFrom stats model.frame model.response model.weights
-#' @importFrom stats fitted model.matrix aggregate coef pchisq formula
+#' @importFrom stats fitted model.matrix aggregate coef pchisq formula printCoefmat
 #' @export
-logistic_gof <- function(fit, min_n = 5, min_expected = 5,
+logistic.gof <- function(fit, min_n = 5, min_expected = 5,
                          pool = TRUE) {
   ## --- Sanity checks ---
   if (!inherits(fit, "glm")) {
@@ -183,15 +186,28 @@ logistic_gof <- function(fit, min_n = 5, min_expected = 5,
   }
 
   statistic <- sum((df_group$O - expected)^2 / variance)
-  pval <- 1 - pchisq(statistic, df_chi)
+  failures <- df_group$n - df_group$O
+  expected_failures <- df_group$n - expected
+  deviance_terms <- numeric(n_groups)
+  has_successes <- df_group$O > 0
+  has_failures <- failures > 0
+  deviance_terms[has_successes] <- deviance_terms[has_successes] +
+    df_group$O[has_successes] *
+      log(df_group$O[has_successes] / expected[has_successes])
+  deviance_terms[has_failures] <- deviance_terms[has_failures] +
+    failures[has_failures] *
+      log(failures[has_failures] / expected_failures[has_failures])
+  deviance_statistic <- 2 * sum(deviance_terms)
+  statistics <- c(Pearson = statistic, Deviance = deviance_statistic)
+  pvals <- pchisq(statistics, df_chi, lower.tail = FALSE)
 
-  ## --- Return htest ---
+  ## --- Return test results ---
   res <- list(
-    statistic = c(X2 = statistic),
+    statistic = statistics,
     parameter = c(df = df_chi),
-    p.value = pval,
+    p.value = pvals,
     method = paste(
-      "Pearson Chi-squared GoF for logistic regression",
+      "Pearson and deviance GoF tests for logistic regression",
       if (pool) "(with pooling)" else ""
     ),
     data.name = deparse(formula(fit))
@@ -203,8 +219,30 @@ logistic_gof <- function(fit, min_n = 5, min_expected = 5,
   res$group_n <- df_group$n
   res$groups <- df_group
 
-  class(res) <- "htest"
+  class(res) <- c("ibist_logistic_gof", "htest")
   res
+}
+
+#' @export
+print.ibist_logistic_gof <- function(
+    x, digits = max(3L, getOption("digits") - 3L), ...) {
+  cat("\n", x$method, "\n\n", sep = "")
+  results <- cbind(
+    statistic = unname(x$statistic),
+    df = rep.int(unname(x$parameter), length(x$statistic)),
+    p.value = unname(x$p.value)
+  )
+  rownames(results) <- names(x$statistic)
+  printCoefmat(results, digits = digits, P.values = TRUE, has.Pvalue = TRUE)
+  cat("\nModel: ", x$data.name, "\n", sep = "")
+  invisible(x)
+}
+
+#' @rdname logistic.gof
+#' @export
+logistic_gof <- function(...) {
+  .Deprecated("logistic.gof")
+  logistic.gof(...)
 }
 
 binomial_response_counts <- function(y, w = NULL) {

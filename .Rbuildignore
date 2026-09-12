@@ -35,3 +35,4 @@
 data-raw/
 ^ibist-book(/|$)
 ^priority\.md$
+^solution-manual$
