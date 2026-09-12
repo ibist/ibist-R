@@ -48,7 +48,8 @@
 #' \item{sig.level}{Significance level.}
 #' \item{power}{Power of the test.}
 #' \item{alternative}{Type of alternative hypothesis.}
-#' \item{note}{Clarifies that \code{n} refers to the first group size.}
+#' \item{note}{Clarifies that \code{n} refers to the first group size and
+#'   states whether continuity correction was applied.}
 #' \item{method}{Description of the method.}
 #'
 #' @note
@@ -148,13 +149,14 @@ power.p2s.test <- function(n = NULL, p1 = NULL, p2 = NULL,
             warning("No significance level [0, 1] can be found to achieve the desired power")
     }
     else stop("internal error", domain = NA)
-    method <-  if (correct)
-                   "Two-sample comparison of proportions power calculation (with continuity correction)"
-               else
-                   "Two-sample comparison of proportions power calculation"
+    method <- "Two-sample proportions power calculation"
+    note <- paste(
+        "n is number in the 1st group;",
+        if (correct) "continuity correction applied" else "no continuity correction"
+    )
     structure(list(n = n, p1 = p1, p2 = p2, sig.level = sig.level, 
                    power = power, alternative = alternative,
-                   note = "n is number in the 1st group", 
+                   note = note,
                    method = method),
               class = "power.htest")
 }

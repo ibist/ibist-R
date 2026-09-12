@@ -54,7 +54,8 @@ An object of class \code{"power.htest"} with components:
 \item{sig.level}{Significance level.}
 \item{power}{Power of the test.}
 \item{alternative}{Type of alternative hypothesis.}
-\item{note}{Clarifies that \code{n} refers to the first group size.}
+\item{note}{Clarifies that \code{n} refers to the first group size and
+  states whether continuity correction was applied.}
 \item{method}{Description of the method.}
 }
 \description{

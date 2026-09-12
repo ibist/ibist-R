@@ -14,7 +14,11 @@ test_that("power.p2s.test returns stable unequal-allocation power", {
 
   expect_s3_class(result, "power.htest")
   expect_equal(result$power, 0.8980878, tolerance = 1e-7)
-  expect_equal(result$note, "n is number in the 1st group")
+  expect_equal(result$method, "Two-sample proportions power calculation")
+  expect_equal(
+    result$note,
+    "n is number in the 1st group; continuity correction applied"
+  )
 })
 
 test_that("power functions solve sample sizes", {
@@ -48,6 +52,11 @@ test_that("power.p2s.test agrees with stats::power.prop.test for equal groups", 
                                          alternative = "two.sided")
 
   expect_equal(result$power, stats_result$power)
+  expect_equal(result$method, "Two-sample proportions power calculation")
+  expect_equal(
+    result$note,
+    "n is number in the 1st group; no continuity correction"
+  )
 })
 
 test_that("power functions validate inputs", {
