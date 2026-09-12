@@ -1,6 +1,6 @@
 Package: ibist
 Title: Data and Functions for Introduction to Biostatistics with R
-Version: 0.1-0
+Version: 0.1-1
 Authors@R: c(
     person(given = "Elizabeth", family = "Schifano",
            role = c("aut"),
@@ -16,7 +16,7 @@ Author: Elizabeth Schifano [aut] (ORCID:
     <https://orcid.org/0000-0003-4401-7296>)
 Maintainer: Jun Yan <jun.yan@uconn.edu>
 Description: Provides datasets and supporting functions for the book
-    Introduction to Biostatistics with R by Schifano and Yan (2026+),
+    "Introduction to Biostatistics with R" by Schifano and Yan (2026+),
     published by Taylor & Francis. The package is intended for teaching
     introductory biostatistics and for reproducing examples in the text.
 Depends:
