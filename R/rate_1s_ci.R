@@ -64,9 +64,8 @@
 #' When \code{correct = TRUE}, continuity correction is applied on the count
 #' scale for methods that support it.
 #' 
-#' @return For one method, an object of class \code{"ci"} containing the
-#'   estimate and confidence limits. For multiple methods, a data frame with
-#'   one row per method.
+#' @return An object of class \code{"ibist_ci"} containing the common estimate
+#'   and a confidence-limit matrix with one row per method.
 #'
 #' @examples
 #' rate.1s.ci(5, 10)
@@ -116,22 +115,13 @@ rate.1s.ci <- function(
     }
   )
 
-  if (length(methods) > 1L) {
-    return(ci_table(methods, x / exposure, intervals, conf.level))
-  }
-
-  method <- methods[[1L]]
-  ci <- intervals[[1L]]
-
-  structure(
-    list(
-      conf.int = ci,
-      estimate = c(rate = x / exposure),
-      conf.level = conf.level,
-      method = paste(method, "CI for Poisson rate"),
-      data.name = paste0("x = ", x, ", exposure = ", exposure)
-    ),
-    class = c("ibist_ci", "ci")
+  new_ibist_ci(
+    method = methods,
+    estimate = c(rate = x / exposure),
+    intervals = intervals,
+    conf.level = conf.level,
+    parameter = "Poisson rate",
+    data.name = paste0("x = ", x, ", exposure = ", exposure)
   )
 }
 

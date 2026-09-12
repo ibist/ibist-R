@@ -35,9 +35,8 @@ rate.1s.ci(
 \item{...}{Reserved for future extensions.}
 }
 \value{
-For one method, an object of class \code{"ci"} containing the
-  estimate and confidence limits. For multiple methods, a data frame with
-  one row per method.
+An object of class \code{"ibist_ci"} containing the common estimate
+  and a confidence-limit matrix with one row per method.
 }
 \description{
 Computes confidence intervals for a Poisson rate parameter

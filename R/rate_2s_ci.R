@@ -48,9 +48,8 @@
 #' \code{"exact"} method uses the exact Clopper-Pearson limits returned by
 #' \code{\link[stats]{binom.test}}.
 #'
-#' @return For one method, an object of class \code{"ci"} containing the
-#'   estimate and confidence limits. For multiple methods, a data frame with
-#'   one row per method.
+#' @return An object of class \code{"ibist_ci"} containing the rate estimates
+#'   and a confidence-limit matrix with one row per method.
 #'
 #' @examples
 #' rate.2s.ci(c(151, 55), exposure = c(57518.1, 74573.5))
@@ -103,26 +102,17 @@ rate.2s.ci <- function(
     function(method) ci_methods[[method]](x, exposure, conf.level, ...)
   )
 
-  if (length(methods) > 1L) {
-    return(ci_table(methods, rate_ratio, intervals, conf.level))
-  }
-
-  method <- methods[[1L]]
-  ci <- intervals[[1L]]
-
-  structure(
-    list(
-      conf.int = structure(ci, conf.level = conf.level),
-      estimate = c("rate 1" = rate1, "rate 2" = rate2,
-                   "rate ratio" = rate_ratio),
-      conf.level = conf.level,
-      method = paste(method, "CI for Poisson rate ratio"),
-      data.name = paste0(
-        "x = c(", x[1], ", ", x[2], "), ",
-        "exposure = c(", exposure[1], ", ", exposure[2], ")"
-      )
-    ),
-    class = c("ibist_ci", "ci")
+  new_ibist_ci(
+    method = methods,
+    estimate = c("rate 1" = rate1, "rate 2" = rate2,
+                 "rate ratio" = rate_ratio),
+    intervals = intervals,
+    conf.level = conf.level,
+    parameter = "Poisson rate ratio",
+    data.name = paste0(
+      "x = c(", x[1], ", ", x[2], "), ",
+      "exposure = c(", exposure[1], ", ", exposure[2], ")"
+    )
   )
 }
 

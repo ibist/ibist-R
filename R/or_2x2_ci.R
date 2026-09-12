@@ -20,9 +20,8 @@
 #' and \code{"bp"} methods invert the conditional mid-p test based on the
 #' noncentral hypergeometric distribution.
 #'
-#' @return For one method, an object of class \code{"ci"} containing the
-#'   estimate and confidence limits. For multiple methods, a data frame with
-#'   one row per method.
+#' @return An object of class \code{"ibist_ci"} containing the common estimate
+#'   and a confidence-limit matrix with one row per method.
 #'
 #' @references
 #' Baptista, J., and Pike, M. C. (1977). Algorithm AS 115: Exact two-sided
@@ -70,34 +69,14 @@ or.2x2.ci <- function(
     function(method) ci_methods[[method]](tab, conf.level, ...)
   )
 
-  if (length(methods) > 1L) {
-    return(ci_table(methods, estimate, intervals, conf.level))
-  }
-
-  method <- methods[[1L]]
-  ci <- intervals[[1L]]
-
-  structure(
-    list(
-      statistic = NULL,
-      parameter = NULL,
-      p.value = NULL,
-      conf.int = structure(ci, conf.level = conf.level),
-      estimate = c("odds ratio" = estimate),
-      null.value = c("odds ratio" = 1),
-      alternative = "two.sided",
-      method = paste(
-        switch(
-          method,
-          wald = "Wald",
-          adjusted = "Adjusted Wald",
-          "baptista-pike" = "Baptista-Pike mid-p"
-        ),
-        "CI for odds ratio"
-      ),
-      data.name = deparse(substitute(x))
-    ),
-    class = c("ibist_ci", "ci")
+  new_ibist_ci(
+    method = methods,
+    estimate = c("odds ratio" = estimate),
+    intervals = intervals,
+    conf.level = conf.level,
+    parameter = "odds ratio",
+    data.name = deparse(substitute(x)),
+    null.value = c("odds ratio" = 1)
   )
 }
 

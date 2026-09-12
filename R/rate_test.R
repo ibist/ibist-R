@@ -158,7 +158,7 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
           conf.level = conf.level,
           method = "score",
           correct = correct
-      )$conf.int
+      )$conf.int[1L, ]
       
       estimate <- c(rate = x / exposure)
       null.value <- c(rate = r)
@@ -191,7 +191,7 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
                               conf.level = conf.level, correct = correct)
       
       ## Estimation target: rate ratio
-      conf.int <- ci$conf.int
+      conf.int <- ci$conf.int[1L, ]
       
       estimate <- ci$estimate
       null.value <- c("rate ratio" = 1)

@@ -36,9 +36,8 @@
 #' moderate because it searches over nuisance parameters and refines the
 #' confidence limits numerically.
 #'
-#' @return For one method, an object of class \code{"ci"} containing the
-#'   estimate and confidence limits. For multiple methods, a data frame with
-#'   one row per method.
+#' @return An object of class \code{"ibist_ci"} containing the common estimate
+#'   and a confidence-limit matrix with one row per method.
 #'
 #' @examples
 #' prop.paired.ci(b = 8, c = 25, n = 180)
@@ -95,36 +94,14 @@ prop.paired.ci <- function(
     )
   )
 
-  if (length(methods) > 1L) {
-    return(ci_table(methods, estimate, intervals, conf.level))
-  }
-
-  method <- methods[[1L]]
-  ci <- intervals[[1L]]
-
-  structure(
-    list(
-      statistic = NULL,
-      parameter = NULL,
-      p.value = NULL,
-      conf.int = structure(ci, conf.level = conf.level),
-      estimate = c("proportion difference" = estimate),
-      null.value = c("proportion difference" = 0),
-      alternative = "two.sided",
-      method = paste(
-        switch(
-          method,
-          score = "Score",
-          wald = "Wald",
-          waldcc = "Continuity-corrected Wald",
-          "agresti-min" = "Agresti-Min",
-          wang = "Wang exact"
-        ),
-        "CI for paired proportion difference"
-      ),
-      data.name = paste0("b = ", b, ", c = ", c, ", n = ", n)
-    ),
-    class = c("ibist_ci", "ci")
+  new_ibist_ci(
+    method = methods,
+    estimate = c("proportion difference" = estimate),
+    intervals = intervals,
+    conf.level = conf.level,
+    parameter = "paired proportion difference",
+    data.name = paste0("b = ", b, ", c = ", c, ", n = ", n),
+    null.value = c("proportion difference" = 0)
   )
 }
 
