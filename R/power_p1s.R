@@ -8,6 +8,39 @@
 #' methods. When \code{exact = TRUE}, the exact test is determined by
 #' \code{exact.method}.
 #'
+#' For \code{exact.method = "quantile"}, the one-sided critical boundary is
+#' the most extreme binomial quantile whose null tail probability does not
+#' exceed \code{sig.level}. For a two-sided test, up to half of
+#' \code{sig.level} is allocated to each tail.
+#'
+#' For \code{exact.method = "midp"}, the lower and upper mid-p tails at an
+#' observed count \eqn{x} are, respectively,
+#' \deqn{P_0(X < x) + \tfrac{1}{2}P_0(X = x)}
+#' and
+#' \deqn{P_0(X > x) + \tfrac{1}{2}P_0(X = x).}
+#' A one-sided test rejects when the applicable mid-p tail is no greater than
+#' \code{sig.level}. The central two-sided test implemented here rejects when
+#' twice the smaller mid-p tail is no greater than \code{sig.level}. Other
+#' two-sided mid-p tests may use different orderings of the sample space. Power
+#' and
+#' \code{achieved.sig.level} are the full probabilities of this deterministic
+#' rejection region under \eqn{p_1} and \eqn{p_0}, respectively. Unlike the
+#' other deterministic exact methods, a mid-p test need not control its actual
+#' size at the nominal level for every \eqn{p_0}.
+#'
+#' For \code{exact.method = "midp-rand"}, the quantile method's critical
+#' boundaries are retained, but an observation on either boundary is assigned
+#' rejection probability one-half. Thus, each reported probability consists
+#' of the probability strictly beyond the boundaries plus one-half of the
+#' boundary mass. This randomized construction explains its connection to
+#' mid-p tail probabilities.
+#'
+#' For \code{exact.method = "cp"}, rejection is determined by the one-sided
+#' exact binomial p-value or, for a two-sided test, twice the smaller exact
+#' tail probability. This is equivalent to inversion of the corresponding
+#' Clopper--Pearson acceptance region and controls size at
+#' \code{sig.level}.
+#'
 #' Exactly one of \code{n}, \code{p0}, \code{p1}, \code{power}, or
 #' \code{sig.level} must be \code{NULL}; the missing quantity is solved
 #' numerically.
@@ -25,8 +58,11 @@
 #' @param exact Logical; if \code{TRUE}, use an exact binomial method.
 #' @param exact.method Method used for exact binomial power calculation.
 #'   \code{"quantile"} uses fixed binomial rejection regions for stable
-#'   power and sample-size inversion; \code{"midp"} applies the mid-p
-#'   adjustment; \code{"cp"} inverts Clopper--Pearson acceptance regions
+#'   power and sample-size inversion; \code{"midp"} uses a deterministic
+#'   rejection region defined by one-sided or central two-sided mid-p values;
+#'   \code{"midp-rand"} uses the
+#'   quantile rejection boundaries and assigns rejection probability one-half
+#'   at each boundary; \code{"cp"} inverts Clopper--Pearson acceptance regions
 #'   to guarantee size not exceeding \code{sig.level}.
 #' @param strict Logical; if \code{TRUE} and \code{alternative = "two.sided"},
 #'   computes power accounting for both tails explicitly. Otherwise uses
@@ -65,10 +101,16 @@
 #'   with the nominal level.
 #' 
 #'   See also \code{achieved.sig.level} in the returned value.
+#'   For \code{exact.method = "midp-rand"}, this component is the randomized
+#'   null rejection probability, including one-half of the mass at each
+#'   rejection boundary.
 #' 
 #'
-#' @return An object of class \code{"power.htest"} containing the
-#'   computed quantity and test specifications.
+#' @return An object of class \code{"power.htest"} containing the computed
+#'   quantity and test specifications. For exact calculations,
+#'   \code{achieved.sig.level} is the null rejection probability. With
+#'   \code{exact.method = "midp-rand"}, it includes the one-half randomized
+#'   contribution at each boundary.
 #'
 #' @examples
 #' ## Normal approximation (default)
@@ -77,10 +119,16 @@
 #' ## Exact binomial power (quantile-based, default exact method)
 #' power.p1s.test(n = 50, p0 = 0.1, p1 = 0.25, exact = TRUE)
 #'
-#' ## Exact mid-p power
+#' ## Exact power for the deterministic mid-p test
 #' power.p1s.test(
 #'   n = 50, p0 = 0.1, p1 = 0.25,
 #'   exact = TRUE, exact.method = "midp"
+#' )
+#'
+#' ## Randomized mid-p power at the quantile rejection boundaries
+#' power.p1s.test(
+#'   n = 50, p0 = 0.1, p1 = 0.25,
+#'   exact = TRUE, exact.method = "midp-rand"
 #' )
 #'
 #' ## Exact Clopper--Pearson power (guaranteed size control)
@@ -103,7 +151,7 @@ power.p1s.test <- function(
   alternative = c("two.sided", "less", "greater"),
   correct = FALSE,
   exact = FALSE,
-  exact.method = c("quantile", "midp", "cp"),
+  exact.method = c("quantile", "midp", "midp-rand", "cp"),
   strict = TRUE,
   tol = .Machine$double.eps^0.5,
   max_n = 1e7,
@@ -165,8 +213,6 @@ power.p1s.test <- function(
     )
   }
 
-  midp = exact.method == "midp"
-
   ## ---- exact quantile rejection region cache ----
   rr_cache <- new.env(parent = emptyenv())
 
@@ -224,30 +270,45 @@ power.p1s.test <- function(
 
     if (rr$type == "greater") {
       k <- rr$k
-      if (midp)
-        pbinom(k - 1, n, p1, lower.tail = FALSE) +
+      if (exact.method == "midp-rand")
+        pbinom(k, n, p1, lower.tail = FALSE) +
           0.5 * dbinom(k, n, p1)
       else
         pbinom(k - 1, n, p1, lower.tail = FALSE)
     } else if (rr$type == "less") {
       k <- rr$k
-      if (midp)
+      if (exact.method == "midp-rand")
         pbinom(k - 1, n, p1) + 0.5 * dbinom(k, n, p1)
       else
         pbinom(k, n, p1)
     } else {
       k_lo <- rr$k_lo
       k_hi <- rr$k_hi
-      if (midp) {
+      if (exact.method == "midp-rand") {
         pbinom(k_lo - 1, n, p1) +
           0.5 * dbinom(k_lo, n, p1) +
-          pbinom(k_hi - 1, n, p1, lower.tail = FALSE) +
+          pbinom(k_hi, n, p1, lower.tail = FALSE) +
           0.5 * dbinom(k_hi, n, p1)
       } else {
         pbinom(k_lo, n, p1) +
           pbinom(k_hi - 1, n, p1, lower.tail = FALSE)
       }
     }
+  })
+
+  midp_power_body <- quote({
+    x <- 0:n
+    lower_midp <- pbinom(x - 1, n, p0) + 0.5 * dbinom(x, n, p0)
+    upper_midp <- pbinom(x, n, p0, lower.tail = FALSE) +
+      0.5 * dbinom(x, n, p0)
+    midp_value <- if (alternative == "greater") {
+      upper_midp
+    } else if (alternative == "less") {
+      lower_midp
+    } else {
+      pmin(1, 2 * pmin(lower_midp, upper_midp))
+    }
+    sum(dbinom(x[midp_value <= sig.level], n, p1))
   })
 
   cp_power_body <- quote({
@@ -268,10 +329,10 @@ power.p1s.test <- function(
   ## ---- dispatch ----
   if (!exact) {
     power_body <- approx_power_body
-    midp <- NA
   } else if (exact.method == "cp") {
     power_body <- cp_power_body
-    midp <- NA
+  } else if (exact.method == "midp") {
+    power_body <- midp_power_body
   } else {
     power_body <- exact_quantile_power_body
   }
@@ -316,29 +377,15 @@ power.p1s.test <- function(
               eval(power_body)
           }
           
-          if (exact.method == "cp") {
-              feasible <- function(nn) {
-                  a <- alpha_at_n(nn)
-                  pw <- power_at_n(nn)
-                  if (size.rule == "minimal") {
-                      pw >= power
-                  } else {
-                      (a <= sig.level) &&
-                          (a >= alpha.min.frac * sig.level) &&
-                          (pw >= power)
-                  }
-              }              
-          } else {
-              feasible <- function(nn) {
-                  a <- alpha_at_n(nn)
-                  pw <- power_at_n(nn)
-                  if (size.rule == "minimal") {
-                      pw >= power
-                  } else {
-                      (a <= sig.level) &&
-                          (a >= alpha.min.frac * sig.level) &&
-                          (pw >= power)
-                  }
+          feasible <- function(nn) {
+              a <- alpha_at_n(nn)
+              pw <- power_at_n(nn)
+              if (size.rule == "minimal") {
+                  (a <= sig.level) && (pw >= power)
+              } else {
+                  (a <= sig.level) &&
+                      (a >= alpha.min.frac * sig.level) &&
+                      (pw >= power)
               }
           }
           
@@ -425,7 +472,10 @@ power.p1s.test <- function(
   else if (exact.method == "cp")
     "One-sample proportion power calculation (exact Clopper--Pearson)"
   else if (exact.method == "midp")
-    "One-sample proportion power calculation (exact binomial, mid-p)"
+    "One-sample proportion power calculation (deterministic mid-p test)"
+  else if (exact.method == "midp-rand")
+    paste("One-sample proportion power calculation",
+          "(randomized mid-p boundaries)")
   else
       "One-sample proportion power calculation (exact binomial)"
   

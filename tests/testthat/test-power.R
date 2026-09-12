@@ -8,6 +8,59 @@ test_that("power.p1s.test returns stable normal and exact results", {
   expect_true(exact$achieved.sig.level <= exact$sig.level)
 })
 
+test_that("one-sample exact mid-p methods use their stated rejection rules", {
+  n <- 35
+  p0 <- 0.1
+  p1 <- 0.25
+  alpha <- 0.05
+  x <- 0:n
+
+  lower_midp <- pbinom(x - 1, n, p0) + 0.5 * dbinom(x, n, p0)
+  upper_midp <- pbinom(x, n, p0, lower.tail = FALSE) +
+    0.5 * dbinom(x, n, p0)
+  reject <- 2 * pmin(lower_midp, upper_midp) <= alpha
+  expected_midp <- sum(dbinom(x[reject], n, p1))
+
+  midp <- power.p1s.test(
+    n = n, p0 = p0, p1 = p1, power = NULL,
+    alternative = "two.sided", exact = TRUE, exact.method = "midp"
+  )
+  expect_equal(midp$power, expected_midp)
+
+  k_lo <- qbinom(alpha / 2, n, p0) - 1L
+  k_hi <- qbinom(1 - alpha / 2, n, p0) + 1L
+  expected_rand <-
+    pbinom(k_lo - 1, n, p1) + 0.5 * dbinom(k_lo, n, p1) +
+    pbinom(k_hi, n, p1, lower.tail = FALSE) +
+    0.5 * dbinom(k_hi, n, p1)
+
+  midp_rand <- power.p1s.test(
+    n = n, p0 = p0, p1 = p1, power = NULL,
+    alternative = "two.sided", exact = TRUE,
+    exact.method = "midp-rand"
+  )
+  expect_equal(midp_rand$power, expected_rand)
+})
+
+test_that(
+  "randomized mid-p tails treat upper and lower boundaries symmetrically",
+  {
+  upper <- power.p1s.test(
+    n = 35, p0 = 0.1, p1 = 0.25, power = NULL,
+    alternative = "greater", exact = TRUE,
+    exact.method = "midp-rand"
+  )
+  lower <- power.p1s.test(
+    n = 35, p0 = 0.9, p1 = 0.75, power = NULL,
+    alternative = "less", exact = TRUE,
+    exact.method = "midp-rand"
+  )
+
+  expect_equal(upper$power, lower$power)
+  expect_equal(upper$achieved.sig.level, lower$achieved.sig.level)
+  }
+)
+
 test_that("power.p2s.test returns stable unequal-allocation power", {
   result <- power.p2s.test(n = 100, p1 = 0.3, p2 = 0.5,
                            group.rate = 2)

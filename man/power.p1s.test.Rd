@@ -13,7 +13,7 @@ power.p1s.test(
   alternative = c("two.sided", "less", "greater"),
   correct = FALSE,
   exact = FALSE,
-  exact.method = c("quantile", "midp", "cp"),
+  exact.method = c("quantile", "midp", "midp-rand", "cp"),
   strict = TRUE,
   tol = .Machine$double.eps^0.5,
   max_n = 1e+07,
@@ -43,8 +43,11 @@ normal approximation.}
 
 \item{exact.method}{Method used for exact binomial power calculation.
 \code{"quantile"} uses fixed binomial rejection regions for stable
-power and sample-size inversion; \code{"midp"} applies the mid-p
-adjustment; \code{"cp"} inverts Clopper--Pearson acceptance regions
+power and sample-size inversion; \code{"midp"} uses a deterministic
+rejection region defined by one-sided or central two-sided mid-p values;
+\code{"midp-rand"} uses the
+quantile rejection boundaries and assigns rejection probability one-half
+at each boundary; \code{"cp"} inverts Clopper--Pearson acceptance regions
 to guarantee size not exceeding \code{sig.level}.}
 
 \item{strict}{Logical; if \code{TRUE} and \code{alternative = "two.sided"},
@@ -87,11 +90,17 @@ the standard one-sided approximation.}
   conservative designs, while larger values enforce closer agreement
   with the nominal level.
 
-  See also \code{achieved.sig.level} in the returned value.}
+  See also \code{achieved.sig.level} in the returned value.
+  For \code{exact.method = "midp-rand"}, this component is the randomized
+  null rejection probability, including one-half of the mass at each
+  rejection boundary.}
 }
 \value{
-An object of class \code{"power.htest"} containing the
-  computed quantity and test specifications.
+An object of class \code{"power.htest"} containing the computed
+  quantity and test specifications. For exact calculations,
+  \code{achieved.sig.level} is the null rejection probability. With
+  \code{exact.method = "midp-rand"}, it includes the one-half randomized
+  contribution at each boundary.
 }
 \description{
 Computes power, sample size, or detectable effect size for a
@@ -102,6 +111,39 @@ one-sample binomial test. The interface mirrors
 Power can be computed using a normal approximation or exact binomial
 methods. When \code{exact = TRUE}, the exact test is determined by
 \code{exact.method}.
+
+For \code{exact.method = "quantile"}, the one-sided critical boundary is
+the most extreme binomial quantile whose null tail probability does not
+exceed \code{sig.level}. For a two-sided test, up to half of
+\code{sig.level} is allocated to each tail.
+
+For \code{exact.method = "midp"}, the lower and upper mid-p tails at an
+observed count \eqn{x} are, respectively,
+\deqn{P_0(X < x) + \tfrac{1}{2}P_0(X = x)}
+and
+\deqn{P_0(X > x) + \tfrac{1}{2}P_0(X = x).}
+A one-sided test rejects when the applicable mid-p tail is no greater than
+\code{sig.level}. The central two-sided test implemented here rejects when
+twice the smaller mid-p tail is no greater than \code{sig.level}. Other
+two-sided mid-p tests may use different orderings of the sample space. Power
+and
+\code{achieved.sig.level} are the full probabilities of this deterministic
+rejection region under \eqn{p_1} and \eqn{p_0}, respectively. Unlike the
+other deterministic exact methods, a mid-p test need not control its actual
+size at the nominal level for every \eqn{p_0}.
+
+For \code{exact.method = "midp-rand"}, the quantile method's critical
+boundaries are retained, but an observation on either boundary is assigned
+rejection probability one-half. Thus, each reported probability consists
+of the probability strictly beyond the boundaries plus one-half of the
+boundary mass. This randomized construction explains its connection to
+mid-p tail probabilities.
+
+For \code{exact.method = "cp"}, rejection is determined by the one-sided
+exact binomial p-value or, for a two-sided test, twice the smaller exact
+tail probability. This is equivalent to inversion of the corresponding
+Clopper--Pearson acceptance region and controls size at
+\code{sig.level}.
 
 Exactly one of \code{n}, \code{p0}, \code{p1}, \code{power}, or
 \code{sig.level} must be \code{NULL}; the missing quantity is solved
@@ -114,10 +156,16 @@ power.p1s.test(n = 50, p0 = 0.1, p1 = 0.25)
 ## Exact binomial power (quantile-based, default exact method)
 power.p1s.test(n = 50, p0 = 0.1, p1 = 0.25, exact = TRUE)
 
-## Exact mid-p power
+## Exact power for the deterministic mid-p test
 power.p1s.test(
   n = 50, p0 = 0.1, p1 = 0.25,
   exact = TRUE, exact.method = "midp"
+)
+
+## Randomized mid-p power at the quantile rejection boundaries
+power.p1s.test(
+  n = 50, p0 = 0.1, p1 = 0.25,
+  exact = TRUE, exact.method = "midp-rand"
 )
 
 ## Exact Clopper--Pearson power (guaranteed size control)
