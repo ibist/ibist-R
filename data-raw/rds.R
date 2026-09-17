@@ -16,7 +16,7 @@ rds$count <- as.integer(rds$count)
 rds$bwt  <- factor(rds$bwt,
                    levels = 1:4,
                    labels = c("500-749g", "750-999g",
-                              "1000-1249", "1250-1500g"))
+                              "1000-1249g", "1250-1500g"))
 
 rds$surf <- factor(rds$surf,
                    levels = c(0, 1),

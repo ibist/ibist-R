@@ -12,6 +12,10 @@ test_that("teaching datasets have expected dimensions", {
   expect_equal(dim(mihdl), c(24L, 4L))
   expect_equal(dim(nrs), c(91795L, 6L))
   expect_equal(dim(rds), c(16L, 4L))
+  expect_equal(
+    levels(rds$bwt),
+    c("500-749g", "750-999g", "1000-1249g", "1250-1500g")
+  )
 })
 
 test_that("aggregated count datasets have valid counts and exposure", {
