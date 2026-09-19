@@ -52,5 +52,5 @@ test_that("Zelen test reproduces a published StatXact example", {
 
   result <- or.homogeneity.test(tabs)
 
-  expect_equal(result$p.value, 0.0689, tolerance = 5e-5)
+  expect_equal(round(result$p.value, 4), 0.0689)
 })

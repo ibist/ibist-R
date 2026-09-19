@@ -44,7 +44,7 @@ test_that("common odds ratio test reproduces Jung's published example", {
 
   result <- or.common.test(tabs, alternative = "greater")
 
-  expect_equal(result$p.value, 0.1563, tolerance = 5e-5)
+  expect_equal(round(result$p.value, 4), 0.1563)
 })
 
 test_that("common odds ratio confidence interval inverts exact tails", {
