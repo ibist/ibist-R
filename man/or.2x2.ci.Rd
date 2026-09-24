@@ -7,7 +7,8 @@
 or.2x2.ci(
   x,
   conf.level = 0.95,
-  method = c("wald", "adjusted", "baptista-pike", "bp"),
+  method = c("wald", "gart", "cornfield", "bp"),
+  midp = FALSE,
   ...
 )
 }
@@ -16,9 +17,12 @@ or.2x2.ci(
 
 \item{conf.level}{Confidence level for the interval.}
 
-\item{method}{Method or methods for confidence interval. One or more of:
-\code{"wald"}, \code{"adjusted"}, \code{"baptista-pike"}, or
+\item{method}{Method or methods for confidence interval. One or more of
+\code{"wald"}, \code{"gart"}, \code{"cornfield"}, or
 \code{"bp"}.}
+
+\item{midp}{Logical; should the conditional exact method be modified using
+mid-p probabilities? The default is \code{FALSE}.}
 
 \item{...}{Reserved for future extensions.}
 }
@@ -35,19 +39,30 @@ For a table with entries \eqn{n_{11}}, \eqn{n_{12}}, \eqn{n_{21}}, and
 \eqn{n_{11} n_{22} / (n_{12} n_{21})}.
 
 The \code{"wald"} method uses the usual large-sample interval on the
-log odds-ratio scale. The \code{"adjusted"} method adds 0.5 to every
-cell before applying the same calculation. The \code{"baptista-pike"}
-and \code{"bp"} methods invert the conditional mid-p test based on the
-noncentral hypergeometric distribution.
+log odds-ratio scale. The addition of 0.5 to every cell is the
+Haldane--Anscombe correction, introduced independently by Haldane (1956)
+and Anscombe (1956). The \code{"gart"} method applies this correction
+using the interval construction in Gart (1966). The \code{"cornfield"} method
+inverts two one-sided conditional tests, while the \code{"bp"} method
+inverts a two-sided conditional test ordered by null probabilities. Both
+use the noncentral hypergeometric distribution. Setting \code{midp = TRUE}
+subtracts half the observed-table probability from the corresponding exact
+p-value. Exact intervals are conservative; mid-p intervals are not
+guaranteed to attain at least the nominal coverage level.
 }
 \examples{
 tab <- matrix(c(7, 27, 1, 33), nrow = 2, byrow = TRUE)
 or.2x2.ci(tab)
-or.2x2.ci(tab, method = "adjusted")
-or.2x2.ci(tab, method = "bp")
+or.2x2.ci(tab, method = "gart")
+or.2x2.ci(tab, method = "cornfield")
+or.2x2.ci(tab, method = "bp", midp = TRUE)
 
 }
 \references{
+Anscombe, F. J. (1956). On estimating binomial response relations.
+\emph{Biometrika}, 43(3--4), 461--464.
+\doi{10.1093/biomet/43.3-4.461}
+
 Baptista, J., and Pike, M. C. (1977). Algorithm AS 115: Exact two-sided
 confidence limits for the odds ratio in a 2 x 2 table.
 \emph{Journal of the Royal Statistical Society. Series C}, 26(2), 214--220.
@@ -55,4 +70,11 @@ confidence limits for the odds ratio in a 2 x 2 table.
 Fagerland, M. W., Lydersen, S., and Laake, P. (2015). Recommended confidence
 intervals for two independent binomial proportions.
 \emph{Statistical Methods in Medical Research}, 24(2), 224--254.
+
+Gart, J. J. (1966). Alternative analyses of contingency tables.
+\emph{Journal of the Royal Statistical Society: Series B}, 28(1), 164--179.
+
+Haldane, J. B. S. (1956). The estimation and significance of the logarithm
+of a ratio of frequencies. \emph{Annals of Human Genetics}, 20(4), 309--311.
+\doi{10.1111/j.1469-1809.1955.tb01285.x}
 }
