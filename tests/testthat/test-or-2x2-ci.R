@@ -26,9 +26,9 @@ test_that("or.2x2.ci returns the four conditional intervals", {
   expect_s3_class(midp, "ibist_ci")
   expect_equal(exact$method, c("cornfield-exact", "bp-exact"))
   expect_equal(midp$method, c("cornfield-midp", "bp-midp"))
-  expect_equal(exact$conf.int["bp-exact", ], c(1, 195.495),
+  expect_equal(exact$conf.int["bp-exact", ], c(lower = 1, upper = 195.495),
                tolerance = 0.01)
-  expect_equal(midp$conf.int["bp-midp", ], c(1.3277, 98.8359),
+  expect_equal(midp$conf.int["bp-midp", ], c(lower = 1.3277, upper = 98.8359),
                tolerance = 1e-3)
 })
 
