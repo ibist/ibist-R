@@ -5,8 +5,10 @@ the linked book manuscript.
 
 ## Summary
 
-The package currently includes six teaching datasets:
+The package currently includes seven teaching datasets:
 
+- `asah`: Paired observer ratings for three aneurysmal subarachnoid hemorrhage
+  grading scales, reconstructed from published cross-tabulations.
 - `depress`: Depression, insomnia, and stress dataset.
 - `fluorosis`: Dental fluorosis grouped count data.
 - `midbp`: Diastolic blood pressure and myocardial infarction rate data.
@@ -79,6 +81,16 @@ for teaching.
 The package documentation still says the exact source is to be specified. This
 should be resolved before CRAN submission if the original source can be
 identified.
+
+### `asah`
+
+The long-format package data are expanded from Table 3 of Degen et al. (2011),
+which reports paired observer ratings for the WFNS, Hunt and Hess, and PAASH
+scales. Generated row numbers are not participant identifiers, and the
+aggregate source does not preserve cross-scale links. In the book's Table 6.9,
+the HH and PAASH cell counts match the article, but several displayed margins
+were incorrect; those margins have been corrected to agree with the cell counts
+and published table.
 
 ## Recommended Order
 
