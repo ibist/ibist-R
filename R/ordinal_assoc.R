@@ -1,20 +1,25 @@
-#' Ordinal Association Measures with Asymptotic Confidence Intervals and Test
+#' Ordinal Association Measures with Asymptotic Confidence Intervals and Tests
 #'
-#' Computes concordance-based ordinal association measures and their
-#' asymptotic confidence intervals from an RxC table. It also tests the common
-#' null hypothesis that the association measure is zero.
+#' Computes ordinal association measures and their asymptotic confidence
+#' intervals from an RxC table. It also tests the null hypothesis that each
+#' association measure is zero.
 #'
 #' @param x A two-dimensional matrix or table of non-negative integer counts.
 #'   Rows and columns must be ordered from the lowest to highest category.
 #' @param measure One or more measures: \code{"gamma"}, \code{"tau-b"},
-#'   \code{"tau-c"}, \code{"somers-c|r"}, and \code{"somers-r|c"}. By
-#'   default, all five are computed.
+#'   \code{"tau-c"}, \code{"somers-c|r"}, \code{"somers-r|c"},
+#'   \code{"pearson"}, and \code{"spearman"}.
+#'   By default, all seven are computed.
 #' @param conf.level Confidence level for the two-sided asymptotic confidence
 #'   intervals.
-#' @param alternative Alternative hypothesis for the shared test:
+#' @param alternative Alternative hypothesis for the tests:
 #'   \code{"two.sided"}, \code{"greater"}, or \code{"less"}. Positive
 #'   association means that higher row categories tend to occur with higher
 #'   column categories.
+#' @param row.scores,col.scores Optional numeric scores for row and column
+#'   categories when computing Pearson correlation. By default, numeric
+#'   category labels are used; otherwise, category order numbers are used.
+#'   Spearman correlation always uses marginal midrank scores.
 #'
 #' @details
 #' The procedure computes the concordant and discordant pair counts,
@@ -24,28 +29,40 @@
 #' contributions for cell \eqn{(i,j)}. The test statistic is
 #' \eqn{Z=S/\sqrt{\mathrm{Var}_0(S)}}.
 #'
-#' The selected measures have different sampling variances, so their standard
-#' errors and confidence intervals differ. Their tests of a zero association
-#' nevertheless reduce to the same \eqn{Z} statistic and p-value. Confidence
-#' intervals are two-sided regardless of the test alternative. Rows and columns
-#' with zero marginal totals are dropped before computation.
+#' The concordance-based measures share a test statistic, but Pearson and
+#' Spearman correlations use their own multinomial null variances. Standard
+#' errors and confidence intervals are computed separately for each measure.
+#' Confidence intervals are two-sided regardless of the test alternative.
+#' Rows and columns with zero marginal totals are dropped before computation.
 #'
 #' The \code{"somers-c|r"} measure is Somers' \eqn{\Delta(C|R)}, treating the
 #' row variable as explanatory; \code{"somers-r|c"} is
 #' \eqn{\Delta(R|C)}, treating the column variable as explanatory.
+#'
+#' Pearson correlation uses the supplied category scores or the default
+#' category scores described above (numeric labels such as 1, 2, and 10 are
+#' used as-is). Spearman correlation uses marginal
+#' midranks, so observations tied within a category receive the same rank.
+#' The correlation standard errors and null variances use multinomial
+#' contingency-table formulas. The confidence intervals are Wald intervals.
 #'
 #' @return An object of class \code{"ibist_ordinal_assoc"} containing:
 #' \describe{
 #'   \item{estimate}{Named vector of selected association estimates.}
 #'   \item{std.error}{Named vector of asymptotic standard errors.}
 #'   \item{conf.int}{Matrix of lower and upper confidence limits.}
-#'   \item{statistic}{The shared asymptotic \eqn{Z} statistic.}
-#'   \item{p.value}{P-value for the selected alternative.}
+#'   \item{statistic}{Named asymptotic test statistics, one per selected
+#'     measure.}
+#'   \item{p.value}{Named p-values, one per selected measure.}
 #'   \item{S, var.S}{The observed concordance contrast and its null variance.}
 #'   \item{concordant, discordant}{Concordant and discordant pair counts.}
 #' }
 #'
 #' @references
+#' Brown, M. B., and Benedetti, J. K. (1977). Sampling behavior of tests for
+#' correlation in two-way contingency tables. \emph{Journal of the American
+#' Statistical Association}, 72(358), 309--315.
+#'
 #' Goodman, L. A., and Kruskal, W. H. (1954). Measures of association for
 #' cross classifications. \emph{Journal of the American Statistical
 #' Association}, 49(268), 732--764.
@@ -61,21 +78,33 @@
 #' @examples
 #' tab <- matrix(c(12, 3, 1, 4, 9, 2, 1, 5, 13), nrow = 3, byrow = TRUE)
 #' ordinal.assoc(tab)
-#' ordinal.assoc(tab, measure = c("tau-b", "somers-c|r"))
+#' ordinal.assoc(
+#'   tab,
+#'   measure = c("tau-b", "somers-c|r", "pearson", "spearman")
+#' )
 #'
 #' @export
 ordinal.assoc <- function(
   x,
-  measure = c("gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c"),
+  measure = c(
+    "gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c",
+    "pearson", "spearman"
+  ),
   conf.level = 0.95,
-  alternative = c("two.sided", "greater", "less")
+  alternative = c("two.sided", "greater", "less"),
+  row.scores = NULL,
+  col.scores = NULL
 ) {
+  all.measures <- c(
+    "gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c",
+    "pearson", "spearman"
+  )
   measures <- if (missing(measure)) {
-    c("gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c")
+    all.measures
   } else {
     match.arg(
       measure,
-      choices = c("gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c"),
+      choices = all.measures,
       several.ok = TRUE
     )
   }
@@ -93,9 +122,26 @@ ordinal.assoc <- function(
     stop("'x' must be a two-dimensional table of non-negative integer counts.")
   }
 
-  tab <- tab[rowSums(tab) > 0, colSums(tab) > 0, drop = FALSE]
+  keep.rows <- rowSums(tab) > 0
+  keep.cols <- colSums(tab) > 0
+  if (!is.null(row.scores)) {
+    row.scores <- validate_ordinal_scores(row.scores, nrow(tab), "row.scores")
+    row.scores <- row.scores[keep.rows]
+  }
+  if (!is.null(col.scores)) {
+    col.scores <- validate_ordinal_scores(col.scores, ncol(tab), "col.scores")
+    col.scores <- col.scores[keep.cols]
+  }
+  tab <- tab[keep.rows, keep.cols, drop = FALSE]
   if (any(dim(tab) < 2L)) {
     stop("'x' must have at least two non-empty rows and columns.")
+  }
+
+  if (is.null(row.scores)) {
+    row.scores <- default_ordinal_scores(rownames(tab), nrow(tab))
+  }
+  if (is.null(col.scores)) {
+    col.scores <- default_ordinal_scores(colnames(tab), ncol(tab))
   }
 
   components <- ordinal_assoc_components(tab)
@@ -115,7 +161,9 @@ ordinal.assoc <- function(
     `tau-b` = components$S / u,
     `tau-c` = 2 * d * components$S / (n^2 * (d - 1)),
     `somers-c|r` = components$S / u_row,
-    `somers-r|c` = components$S / u_col
+    `somers-r|c` = components$S / u_col,
+    pearson = NA_real_,
+    spearman = NA_real_
   )
 
   A <- components$concordant.by.cell
@@ -145,7 +193,18 @@ ordinal.assoc <- function(
     `somers-r|c` = sum(
       tab * (u_col * d_cell - components$S *
                outer(rep(1, nrow(tab)), n - colSums(tab)))^2
-    ) / u_col^4
+    ) / u_col^4,
+    pearson = NA_real_,
+    spearman = NA_real_
+  )
+
+  pearson <- ordinal_assoc_score_correlation(tab, row.scores, col.scores)
+  spearman <- ordinal_assoc_spearman(tab)
+  all.estimates[c("pearson", "spearman")] <- c(
+    pearson$estimate, spearman$estimate
+  )
+  all.variances[c("pearson", "spearman")] <- c(
+    pearson$variance, spearman$variance
   )
 
   estimates <- all.estimates[measures]
@@ -162,11 +221,16 @@ ordinal.assoc <- function(
     upper = estimates + z_critical * std.error
   )
 
-  statistic <- if (var0S > 0) {
-    components$S / sqrt(var0S)
-  } else {
-    NA_real_
-  }
+  null.variances <- stats::setNames(rep(var0S, length(measures)), measures)
+  null.variances["pearson"] <- pearson$null.variance
+  null.variances["spearman"] <- spearman$null.variance
+  numerators <- estimates
+  is.correlation <- names(numerators) %in% c("pearson", "spearman")
+  numerators[!is.correlation] <- components$S
+  statistic <- numerators / sqrt(null.variances[measures])
+  unusable.null.variance <- !is.finite(null.variances[measures]) |
+    null.variances[measures] <= 0
+  statistic[unusable.null.variance] <- NA_real_
   p.value <- switch(
     alternative,
     two.sided = 2 * stats::pnorm(-abs(statistic)),
@@ -180,10 +244,10 @@ ordinal.assoc <- function(
       std.error = std.error,
       conf.int = conf.int,
       conf.level = conf.level,
-      statistic = c(Z = statistic),
+      statistic = statistic,
       p.value = p.value,
       alternative = alternative,
-      method = "Asymptotic ordinal association measures and test",
+      method = "Asymptotic ordinal association measures and tests",
       measure = measures,
       S = components$S,
       var.S = var0S,
@@ -242,6 +306,110 @@ ordinal_assoc_components <- function(tab) {
   )
 }
 
+# Helpers for score-based correlation measures.
+validate_ordinal_scores <- function(x, n, arg) {
+  if (!is.numeric(x) || length(x) != n || anyNA(x) ||
+      any(!is.finite(x)) || length(unique(x)) < 2L) {
+    stop("'", arg, "' must contain ", n,
+         " finite numeric scores with at least two distinct values.")
+  }
+  as.numeric(x)
+}
+
+default_ordinal_scores <- function(labels, n) {
+  if (is.null(labels)) {
+    return(seq_len(n))
+  }
+  scores <- suppressWarnings(as.numeric(labels))
+  if (all(!is.na(scores)) && all(is.finite(scores))) scores else seq_len(n)
+}
+
+ordinal_assoc_score_correlation <- function(tab, row.scores, col.scores) {
+  n <- sum(tab)
+  row.margin <- rowSums(tab)
+  col.margin <- colSums(tab)
+  row.mean <- sum(row.margin * row.scores) / n
+  col.mean <- sum(col.margin * col.scores) / n
+  row.centered <- row.scores - row.mean
+  col.centered <- col.scores - col.mean
+  row.ss <- sum(row.margin * row.centered^2)
+  col.ss <- sum(col.margin * col.centered^2)
+  cross.ss <- sum(tab * outer(row.centered, col.centered))
+  scale <- sqrt(row.ss * col.ss)
+  if (!is.finite(scale) || scale <= 0) {
+    stop("The category scores must have positive marginal variance.")
+  }
+  estimate <- cross.ss / scale
+  bij <- outer(row.centered^2, rep(1, ncol(tab))) * col.ss +
+    outer(rep(1, nrow(tab)), col.centered^2) * row.ss
+  influence <- scale * outer(row.centered, col.centered) -
+    bij * cross.ss / (2 * scale)
+  variance <- sum(tab * influence^2) / scale^4
+  null.variance <- (
+    sum(tab * outer(row.centered^2, col.centered^2)) - cross.ss^2 / n
+  ) / (row.ss * col.ss)
+
+  list(
+    estimate = estimate,
+    variance = variance,
+    null.variance = null.variance
+  )
+}
+
+ordinal_assoc_spearman <- function(tab) {
+  n <- sum(tab)
+  row.margin <- rowSums(tab)
+  col.margin <- colSums(tab)
+  row.rank <- cumsum(row.margin) - row.margin / 2
+  col.rank <- cumsum(col.margin) - col.margin / 2
+  row.centered <- row.rank - n / 2
+  col.centered <- col.rank - n / 2
+  F <- n^3 - sum(row.margin^3)
+  G <- n^3 - sum(col.margin^3)
+  scale <- sqrt(F * G) / 12
+  if (!is.finite(scale) || scale <= 0) {
+    stop("Spearman correlation requires at least two non-empty categories.")
+  }
+  v <- sum(tab * outer(row.centered, col.centered))
+  estimate <- v / scale
+
+  vij <- matrix(0, nrow(tab), ncol(tab))
+  for (i in seq_len(nrow(tab))) {
+    for (j in seq_len(ncol(tab))) {
+      row.tail <- if (i < nrow(tab)) {
+        sum(tab[seq.int(i + 1L, nrow(tab)), , drop = FALSE] %*% col.centered)
+      } else {
+        0
+      }
+      col.tail <- if (j < ncol(tab)) {
+        sum(row.centered %*% tab[, seq.int(j + 1L, ncol(tab)), drop = FALSE])
+      } else {
+        0
+      }
+      vij[i, j] <- n * (
+        row.centered[i] * col.centered[j] +
+          sum(tab[i, ] * col.centered) / 2 +
+          sum(tab[, j] * row.centered) / 2 + row.tail + col.tail
+      )
+    }
+  }
+  wij <- -n / (96 * scale) * (
+    outer(row.margin^2, rep(G, ncol(tab))) +
+      outer(rep(F, nrow(tab)), col.margin^2)
+  )
+  zij <- scale * vij - v * wij
+  z.mean <- sum(tab * zij) / n
+  variance <- sum(tab * (zij - z.mean)^2) / (n^2 * scale^4)
+  v.mean <- sum(tab * vij) / n
+  null.variance <- sum(tab * (vij - v.mean)^2) / (n^2 * scale^2)
+
+  list(
+    estimate = estimate,
+    variance = variance,
+    null.variance = null.variance
+  )
+}
+
 #' @export
 print.ibist_ordinal_assoc <- function(
   x,
@@ -259,12 +427,24 @@ print.ibist_ordinal_assoc <- function(
   )
   print(round(result, digits = digits))
 
-  cat("\nShared test of zero association\n")
+  cat("\nTests of zero association\n")
+  concordance.measures <- intersect(
+    x$measure,
+    c("gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c")
+  )
+  if (length(concordance.measures) > 1L) {
+    cat(
+      "  Note: Concordance-based measures share the same test; their ",
+      "identical test results are not separate tests.\n",
+      sep = ""
+    )
+  }
   cat("  Alternative:", x$alternative, "\n")
-  cat("  S =", format(x$S),
-      "; Var0(S) =", format(x$var.S),
-      "; Z =", format(unname(x$statistic)), "\n")
-  cat("  p-value =", format.pval(x$p.value, digits = digits), "\n")
+  tests <- cbind(
+    statistic = x$statistic,
+    p.value = x$p.value
+  )
+  print(tests, digits = digits)
 
   invisible(x)
 }
