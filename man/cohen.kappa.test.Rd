@@ -8,7 +8,8 @@ cohen.kappa.test(
   x,
   weights = "unweighted",
   conf.level = 0.95,
-  alternative = c("two.sided", "greater", "less")
+  alternative = c("two.sided", "greater", "less"),
+  test.variance = c("fce", "delta")
 )
 }
 \arguments{
@@ -27,12 +28,17 @@ interval.}
 
 \item{alternative}{Alternative hypothesis: \code{"two.sided"},
 \code{"greater"}, or \code{"less"}.}
+
+\item{test.variance}{Variance used for the test: \code{"fce"} for the
+Fleiss--Cohen--Everitt null variance, or \code{"delta"} for the
+multinomial delta-method variance evaluated at the observed proportions.}
 }
 \value{
 An object of class \code{"htest"} containing the estimate,
   confidence interval, Z statistic, and p-value. It also includes the
   standard error used for the confidence interval, the standard error under
-  the null hypothesis, the weight matrix, and the sample size.
+  the null hypothesis, the selected test variance method, the weight
+  matrix, and the sample size.
 }
 \description{
 Computes Cohen's kappa or weighted kappa from a square table of paired
@@ -40,11 +46,15 @@ ratings, with a Wald confidence interval and an asymptotic test of
 \eqn{H_0: \kappa = 0}.
 }
 \details{
-The confidence interval uses the large-sample variance of the kappa
-estimate. The test uses the variance under the null hypothesis
-\eqn{\kappa = 0}; these variances are not interchangeable. The formulas
-follow Fleiss, Cohen, and Everitt (1969) and the corresponding SAS
-\code{PROC FREQ} formulas. The interval is an untruncated Wald interval.
+The confidence interval uses the Fleiss--Cohen--Everitt (FCE) large-sample
+variance of the kappa estimate. This variance is algebraically equivalent
+to the multinomial delta-method variance used by
+\code{psych::cohen.kappa()}. By default, the test uses the distinct FCE
+variance under the null hypothesis \eqn{\kappa = 0}. Setting
+\code{test.variance = "delta"} instead uses the delta-method variance
+evaluated at the observed cell proportions. Evaluating the delta-method
+variance under the null gives the FCE null variance, so it is not a separate
+test option. The interval is an untruncated Wald interval.
 
 This function provides asymptotic inference only. SAS \code{PROC FREQ}
 also provides exact tests for simple and weighted kappa; exact inference is
@@ -63,6 +73,7 @@ peff <- matrix(
 )
 cohen.kappa.test(peff)
 cohen.kappa.test(peff, weights = "quadratic")
+cohen.kappa.test(peff, weights = "quadratic", test.variance = "delta")
 
 }
 \references{

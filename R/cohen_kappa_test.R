@@ -16,13 +16,20 @@
 #'   interval.
 #' @param alternative Alternative hypothesis: \code{"two.sided"},
 #'   \code{"greater"}, or \code{"less"}.
+#' @param test.variance Variance used for the test: \code{"fce"} for the
+#'   Fleiss--Cohen--Everitt null variance, or \code{"delta"} for the
+#'   multinomial delta-method variance evaluated at the observed proportions.
 #'
 #' @details
-#' The confidence interval uses the large-sample variance of the kappa
-#' estimate. The test uses the variance under the null hypothesis
-#' \eqn{\kappa = 0}; these variances are not interchangeable. The formulas
-#' follow Fleiss, Cohen, and Everitt (1969) and the corresponding SAS
-#' \code{PROC FREQ} formulas. The interval is an untruncated Wald interval.
+#' The confidence interval uses the Fleiss--Cohen--Everitt (FCE) large-sample
+#' variance of the kappa estimate. This variance is algebraically equivalent
+#' to the multinomial delta-method variance used by
+#' \code{psych::cohen.kappa()}. By default, the test uses the distinct FCE
+#' variance under the null hypothesis \eqn{\kappa = 0}. Setting
+#' \code{test.variance = "delta"} instead uses the delta-method variance
+#' evaluated at the observed cell proportions. Evaluating the delta-method
+#' variance under the null gives the FCE null variance, so it is not a separate
+#' test option. The interval is an untruncated Wald interval.
 #'
 #' This function provides asymptotic inference only. SAS \code{PROC FREQ}
 #' also provides exact tests for simple and weighted kappa; exact inference is
@@ -31,7 +38,8 @@
 #' @return An object of class \code{"htest"} containing the estimate,
 #'   confidence interval, Z statistic, and p-value. It also includes the
 #'   standard error used for the confidence interval, the standard error under
-#'   the null hypothesis, the weight matrix, and the sample size.
+#'   the null hypothesis, the selected test variance method, the weight
+#'   matrix, and the sample size.
 #'
 #' @references
 #' Fleiss, J. L., Cohen, J., and Everitt, B. S. (1969). Large sample standard
@@ -55,15 +63,18 @@
 #' )
 #' cohen.kappa.test(peff)
 #' cohen.kappa.test(peff, weights = "quadratic")
+#' cohen.kappa.test(peff, weights = "quadratic", test.variance = "delta")
 #'
 #' @export
 cohen.kappa.test <- function(
   x,
   weights = "unweighted",
   conf.level = 0.95,
-  alternative = c("two.sided", "greater", "less")
+  alternative = c("two.sided", "greater", "less"),
+  test.variance = c("fce", "delta")
 ) {
   alternative <- match.arg(alternative)
+  test.variance <- match.arg(test.variance)
 
   if (!is.numeric(conf.level) || length(conf.level) != 1L ||
       is.na(conf.level) || !is.finite(conf.level) || conf.level <= 0 ||
@@ -151,8 +162,16 @@ cohen.kappa.test <- function(
     stop("A valid kappa variance could not be computed for 'x'.")
   }
 
+  test.variance.value <- if (test.variance == "fce") {
+    null.variance
+  } else {
+    variance
+  }
+  if (test.variance.value <= 0) {
+    stop("The selected test variance must be positive for 'x'.")
+  }
   std.error <- sqrt(variance)
-  null.std.error <- sqrt(null.variance)
+  null.std.error <- sqrt(test.variance.value)
   z <- estimate / null.std.error
   p.value <- switch(
     alternative,
@@ -185,6 +204,7 @@ cohen.kappa.test <- function(
       data.name = deparse(substitute(x)),
       std.error = std.error,
       null.std.error = null.std.error,
+      test.variance = test.variance,
       weights = weight.matrix,
       weight.method = weight.method,
       n = n
