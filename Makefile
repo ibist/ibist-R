@@ -14,6 +14,10 @@ check: $(checkLog)
 .PHONY: build
 build: $(tar)
 
+.PHONY: document
+document:
+	Rscript -e "library(methods); devtools::document();"
+
 .PHONY: install
 install:
 	R CMD build .
@@ -43,9 +47,6 @@ check-revdep: $(tar)
 	nohup R CMD BATCH --no-save --no-restore misc/revdep_check.R &
 
 $(tar): $(objects)
-	@Rscript -e "library(methods);" \
-	-e "devtools::document();";
-	@$(MAKE) update-timestamp
 	R CMD build .
 
 $(checkLog): $(tar) $(tinytest)
@@ -58,11 +59,6 @@ vignettes/%.html: vignettes/%.Rmd
 readme: README.md
 README.md: README.Rmd
 	@Rscript -e "rmarkdown::render('$<')"
-
-## update copyright year
-.PHONY: update-timestamp
-update-timestamp:
-	@bash misc/update_timestamp.sh
 
 .PHONY: tags
 tags:
