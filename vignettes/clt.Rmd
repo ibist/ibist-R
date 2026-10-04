@@ -1,10 +1,10 @@
-mean---
+---
 title: "Demonstrating the Central Limit Theorem"
-author: "Companion Package for Biostatistical Analysis of Proportions and Rates"
+author: "Elizabeth D. Schifano and Jun Yan"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Central Limit Theorem Demonstration}
+  %\VignetteIndexEntry{Demonstrating the Central Limit Theorem}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,7 +12,7 @@ vignette: >
 # Introduction
 
 In this vignette, we demonstrate the Central Limit Theorem (CLT)
-using the `cltdemo()` function. The CLT states that, regardless
+using the `demo_clt()` function. The CLT states that, regardless
 of the original population distribution, the distribution of the
 sample mean approaches a normal distribution as the sample size
 increases.
@@ -42,7 +42,7 @@ expect to see the sample mean distribution becoming more normal
 as the sample size increases.
 
 ```{r gamma-shape-0.5}
-demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 10000,
+demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 1000,
          shape = 0.5, rate = 1, pmean = 0.5, psd = sqrt(0.5))
 ```
 
@@ -53,7 +53,7 @@ Exponential distribution. This example has moderate skewness,
 and we observe the effect of increasing the sample size.
 
 ```{r gamma-shape-1}
-demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 10000,
+demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 1000,
          shape = 1, rate = 1, pmean = 1, psd = sqrt(1))
 ```
 
@@ -64,16 +64,15 @@ the sample mean distribution converges more quickly to a normal
 distribution even for smaller sample sizes.
 
 ```{r gamma-shape-2}
-demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 10000,
+demo_clt(rgamma, n = c(5, 10, 20, 40), nrep = 1000,
          shape = 2, rate = 1, pmean = 2, psd = sqrt(2))
 ```
 
 # A General Distribution Constructed from a Mixture
 
-When the population `mean` and `sd` are unspecified, the will be
-approximated by a large sample (10,000) and then used in
-standardization. For instance, consider sampling from the following
-mixture distribution.
+When `pmean` and `psd` are not supplied, `demo_clt()` estimates them from
+100,000 simulated observations. For instance, consider sampling from the
+following mixture distribution.
 
 ```{r mixture}
 mymix_rng <- function(n, rate = 0.5) {
@@ -81,7 +80,7 @@ mymix_rng <- function(n, rate = 0.5) {
            rgamma(n, shape = 0.5), rgamma(n, shape = 4))
 }
 
-demo_clt(mymix_rng, n = c(5, 10, 20, 40))
+demo_clt(mymix_rng, n = c(5, 10, 20, 40), nrep = 1000)
 
 ```
 

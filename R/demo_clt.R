@@ -72,8 +72,8 @@ demo_clt <- function(
   names(results) <- as.character(n)
 
   for (size in n) {
-    rng_local <- function() rng(size, ...)
-    sample_means <- replicate(nrep, base::mean(rng_local()))
+    samples <- matrix(rng(size * nrep, ...), nrow = size)
+    sample_means <- colMeans(samples)
 
     results[[as.character(size)]] <- data.frame(
       StdMean = (sample_means - pmean) / (psd / sqrt(size)),
