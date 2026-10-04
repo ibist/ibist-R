@@ -1,64 +1,53 @@
-objects := $(wildcard R/*.R) DESCRIPTION
-version := $(shell grep -E "^Version:" DESCRIPTION | awk '{print $$NF}')
-pkg := $(shell  grep -E "^Package:" DESCRIPTION | awk '{print $$NF}')
-tar := $(pkg)_$(version).tar.gz
-tinytest := $(wildcard inst/tinytest/*.R)
-checkLog := $(pkg).Rcheck/00check.log
-rmd := $(wildcard vignettes/*.Rmd)
-vignettes := $(patsubst %.Rmd,%.html,$(rmd))
+.DEFAULT_GOAL := check
+
+package := $(shell sed -n 's/^Package: //p' DESCRIPTION)
+version := $(shell sed -n 's/^Version: //p' DESCRIPTION)
+package_tarball := $(package)_$(version).tar.gz
+package_files := DESCRIPTION NAMESPACE README.md \
+	$(wildcard R/*.R data/* data-raw/* inst/* inst/*/* man/*.Rd \
+	  src/*.cpp src/*.h src/Makevars* tests/*.R tests/testthat/*.R \
+	  vignettes/*.Rmd)
+check_log := $(package).Rcheck/00check.log
+vignette_sources := $(wildcard vignettes/*.Rmd)
+vignette_outputs := $(patsubst %.Rmd,%.html,$(vignette_sources))
 
 
 .PHONY: check
-check: $(checkLog)
+check: $(check_log)
 
 .PHONY: build
-build: $(tar)
+build: $(package_tarball)
 
 .PHONY: document
 document:
 	Rscript -e "library(methods); devtools::document();"
 
 .PHONY: install
-install:
-	R CMD build .
-	R CMD INSTALL $(tar)
+install: $(package_tarball)
+	R CMD INSTALL $(package_tarball)
 
 .PHONY: preview
-preview: $(vignettes)
+preview: $(vignette_outputs)
 
 .PHONY: pkgdown
 pkgdown:
 	Rscript -e "library(methods); pkgdown::build_site();"
 
-.PHONY: deploy-pkgdown
-deploy-pkgdown:
-	@bash misc/deploy_docs.sh
-
-.PHONY: check-rcpp
-check-rcpp: $(tar)
-	R CMD INSTALL $(tar)
-	Rscript inst/run_rcpp_test.R > check-rcpp.Rout &
-
 .PHONY: check-revdep
-check-revdep: $(tar)
+check-revdep: $(package_tarball)
 	@mkdir -p revdep
-	@rm -rf revdep/{*.Rcheck,*.tar.gz}
-	@cp $(tar) revdep
-	nohup R CMD BATCH --no-save --no-restore misc/revdep_check.R &
+	@rm -rf revdep/*.Rcheck revdep/*.tar.gz
+	@cp $(package_tarball) revdep/
+	Rscript misc/revdep_check.R
 
-$(tar): $(objects)
+$(package_tarball): $(package_files)
 	R CMD build .
 
-$(checkLog): $(tar) $(tinytest)
-	R CMD check --as-cran $(tar)
+$(check_log): $(package_tarball)
+	R CMD check --as-cran $(package_tarball)
 
 vignettes/%.html: vignettes/%.Rmd
-	Rscript -e "library(methods); rmarkdown::render('$?')"
-
-.PHONY: readme
-readme: README.md
-README.md: README.Rmd
-	@Rscript -e "rmarkdown::render('$<')"
+	Rscript -e "rmarkdown::render('$<')"
 
 .PHONY: tags
 tags:
@@ -66,5 +55,5 @@ tags:
 
 .PHONY: clean
 clean:
-	@$(RM) -r *~ */*~ *.Rhistroy *.tar.gz src/*.so src/*.o \
+	@$(RM) -r *~ */*~ *.Rhistory *.tar.gz src/*.so src/*.o \
 	*.Rcheck/ *.Rout .\#* *_cache
