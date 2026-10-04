@@ -46,11 +46,11 @@ test_that("exact trend test agrees with direct conditional enumeration", {
 test_that("trend test validates tables, scores, and exact flag", {
   tab <- matrix(c(4, 1, 2, 3), nrow = 2)
 
-  expect_error(ca.trend.test(matrix(1:6, nrow = 3)), "R-by-2 table")
+  expect_error(ca.trend.test(matrix(1:6, nrow = 2)), "R-by-2 table")
   expect_error(ca.trend.test(matrix(c(1, -1, 2, 3), nrow = 2)),
                "non-negative integer counts")
   expect_error(ca.trend.test(tab, scores = c(2, 1)), "strictly increasing")
   expect_error(ca.trend.test(tab, exact = 1), "'exact' must be TRUE or FALSE")
-  expect_error(ca.trend.test(matrix(c(4, 0, 2, 0), nrow = 2)),
+  expect_error(ca.trend.test(matrix(c(4, 0, 2, 0), nrow = 2, byrow = TRUE)),
                "Both outcome categories")
 })
