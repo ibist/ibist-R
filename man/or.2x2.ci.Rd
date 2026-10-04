@@ -44,11 +44,12 @@ Haldane--Anscombe correction, introduced independently by Haldane (1956)
 and Anscombe (1956). The \code{"gart"} method applies this correction
 using the interval construction in Gart (1966). The \code{"cornfield"} method
 inverts two one-sided conditional tests, while the \code{"bp"} method
-inverts a two-sided conditional test ordered by null probabilities. Both
-use the noncentral hypergeometric distribution. Setting \code{midp = TRUE}
-subtracts half the observed-table probability from the corresponding exact
-p-value. Exact intervals are conservative; mid-p intervals are not
-guaranteed to attain at least the nominal coverage level.
+inverts a two-sided conditional test ordered
+by null probabilities. Both use the noncentral hypergeometric distribution.
+Setting \code{midp = TRUE} subtracts half the observed-table probability
+from the corresponding exact p-value. Exact intervals are conservative;
+mid-p intervals are not guaranteed to attain at least the nominal coverage
+level.
 }
 \examples{
 tab <- matrix(c(7, 27, 1, 33), nrow = 2, byrow = TRUE)

@@ -7,11 +7,19 @@
 \alias{or.homogeneity.test}
 \title{Exact Inference for Stratified 2 x 2 Tables}
 \usage{
-or.common.test(x, theta = 1,
-  alternative = c("two.sided", "greater", "less"), ...)
+or.common.test(
+  x,
+  theta = 1,
+  alternative = c("two.sided", "greater", "less"),
+  ...
+)
 
-or.common.ci(x, conf.level = 0.95,
-  algorithm = c("network", "convolution"), ...)
+or.common.ci(
+  x,
+  conf.level = 0.95,
+  algorithm = c("network", "convolution"),
+  ...
+)
 
 or.homogeneity.test(x, ...)
 }
@@ -25,18 +33,18 @@ categories.}
 \item{alternative}{A character string specifying the alternative
 hypothesis: \code{"two.sided"}, \code{"greater"}, or \code{"less"}.}
 
+\item{...}{Reserved for future extensions.}
+
 \item{conf.level}{Confidence level for the interval.}
 
 \item{algorithm}{Computational algorithm for the exact confidence interval.
 The default, \code{"network"}, uses dynamic programming. The
 \code{"convolution"} option is retained as an independent check.}
-
-\item{...}{Reserved for future extensions.}
 }
 \value{
 \code{or.common.test()} returns an object of class \code{"htest"}.
-\code{or.common.ci()} returns an object of class \code{"ibist_ci"}.
-\code{or.homogeneity.test()} returns an object of class \code{"htest"}.
+  \code{or.common.ci()} returns an object of class \code{"ibist_ci"}.
+  \code{or.homogeneity.test()} returns an object of class \code{"htest"}.
 }
 \description{
 Computes an exact conditional test or confidence interval for a common
@@ -46,19 +54,21 @@ odds ratio across a collection of 2 x 2 tables.
 Conditional on the margins of every stratum, the upper-left cell in each
 table has a noncentral hypergeometric distribution. The test combines the
 strata through the sum of those upper-left cells. The two-sided test uses
-the Jung et al. (2014) rule \eqn{2\min(p_{less},p_{greater})}, truncated at
-one. The confidence interval is obtained by inverting these one-sided exact
-tests.
+the Jung et al. (2014) rule
+\eqn{2\min(p_\mathrm{less},p_\mathrm{greater})},
+truncated at one. The confidence interval is obtained by inverting these
+one-sided exact tests.
 
 \code{or.homogeneity.test()} performs Zelen's exact test of
 \eqn{H_0: \theta_1 = \cdots = \theta_K}. It conditions on the observed sum
-of the upper-left cells, which removes the unspecified common odds ratio from
-the null distribution. The two-sided p-value uses probability ordering.
+of the upper-left cells, which removes the unspecified common odds ratio
+from the null distribution. The two-sided p-value uses probability
+ordering.
 
 All three procedures are exact conditional procedures; none is an
 asymptotic alternative. The first two procedures test or estimate a common
-odds ratio. The
-homogeneity procedure tests whether the stratum-specific odds ratios are
+odds ratio. The homogeneity procedure tests whether the stratum-specific
+odds ratios are
 equal, without specifying their common value.
 }
 \examples{
@@ -69,6 +79,7 @@ tabs <- list(
 or.common.test(tabs)
 or.common.ci(tabs)
 or.homogeneity.test(tabs)
+
 }
 \references{
 Jung, S. H., Biggerstaff, B. J., and Kim, C. (2014). A class of exact

@@ -24,6 +24,12 @@
 #' truncated at one. The confidence interval is obtained by inverting these
 #' one-sided exact tests.
 #'
+#' \code{or.homogeneity.test()} performs Zelen's exact test of
+#' \eqn{H_0: \theta_1 = \cdots = \theta_K}. It conditions on the observed sum
+#' of the upper-left cells, which removes the unspecified common odds ratio
+#' from the null distribution. The two-sided p-value uses probability
+#' ordering.
+#'
 #' All three procedures are exact conditional procedures; none is an
 #' asymptotic alternative. The first two procedures test or estimate a common
 #' odds ratio. The homogeneity procedure tests whether the stratum-specific
