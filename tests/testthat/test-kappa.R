@@ -5,7 +5,7 @@ test_that("kappa inference matches the SAS PROC FREQ agreement example", {
     byrow = TRUE
   )
 
-  result <- kappa.test(skin)
+  result <- cohen.kappa.test(skin)
 
   expect_s3_class(result, "htest")
   expect_equal(unname(result$estimate), 0.3449, tolerance = 0.0001)
@@ -28,7 +28,7 @@ test_that("linear weighted kappa inference matches the SAS example", {
     byrow = TRUE
   )
 
-  result <- kappa.test(movies, weights = "linear")
+  result <- cohen.kappa.test(movies, weights = "linear")
 
   expect_equal(unname(result$estimate), 0.5714, tolerance = 0.0001)
   expect_equal(result$std.error, 0.1323, tolerance = 0.0005)
@@ -41,36 +41,36 @@ test_that("linear weighted kappa inference matches the SAS example", {
 
 test_that("quadratic and custom weights use the supplied category order", {
   tab <- matrix(c(8, 2, 1, 5), nrow = 2, byrow = TRUE)
-  quadratic <- kappa.test(tab, weights = "quadratic")
-  custom <- kappa.test(tab, weights = diag(2))
-  unweighted <- kappa.test(tab)
+  quadratic <- cohen.kappa.test(tab, weights = "quadratic")
+  custom <- cohen.kappa.test(tab, weights = diag(2))
+  unweighted <- cohen.kappa.test(tab)
 
   expect_equal(quadratic$weights, matrix(c(1, 0, 0, 1), nrow = 2))
   expect_equal(unname(custom$estimate), unname(unweighted$estimate))
   expect_equal(custom$conf.int, unweighted$conf.int)
   expect_equal(custom$statistic, unweighted$statistic)
 
-  original <- kappa.test(tab, weights = "linear")
+  original <- cohen.kappa.test(tab, weights = "linear")
   dimnames(tab) <- list(c("6", "10"), c("6", "10"))
-  relabeled <- kappa.test(tab, weights = "linear")
+  relabeled <- cohen.kappa.test(tab, weights = "linear")
   expect_equal(relabeled$estimate, original$estimate)
 })
 
 test_that("kappa test alternatives and input validation work", {
   tab <- matrix(c(9, 1, 2, 8), nrow = 2, byrow = TRUE)
-  two.sided <- kappa.test(tab)
-  greater <- kappa.test(tab, alternative = "greater")
-  less <- kappa.test(tab, alternative = "less")
+  two.sided <- cohen.kappa.test(tab)
+  greater <- cohen.kappa.test(tab, alternative = "greater")
+  less <- cohen.kappa.test(tab, alternative = "less")
 
   expect_equal(greater$p.value, two.sided$p.value / 2)
   expect_equal(less$p.value, 1 - two.sided$p.value / 2)
-  expect_error(kappa.test(matrix(1:6, nrow = 2)), "square table")
-  expect_error(kappa.test(matrix(c(1, -1, 2, 3), nrow = 2)), "non-negative")
-  expect_error(kappa.test(tab, weights = "other"), "'arg' should be one of")
+  expect_error(cohen.kappa.test(matrix(1:6, nrow = 2)), "square table")
+  expect_error(cohen.kappa.test(matrix(c(1, -1, 2, 3), nrow = 2)), "non-negative")
+  expect_error(cohen.kappa.test(tab, weights = "other"), "'arg' should be one of")
   invalid.weights <- matrix(c(1, 1.2, 1.2, 1), nrow = 2)
   expect_error(
-    kappa.test(tab, weights = invalid.weights),
+    cohen.kappa.test(tab, weights = invalid.weights),
     "custom 'weights'"
   )
-  expect_error(kappa.test(matrix(0, 2, 2)), "positive total count")
+  expect_error(cohen.kappa.test(matrix(0, 2, 2)), "positive total count")
 })

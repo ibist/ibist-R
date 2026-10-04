@@ -6,16 +6,16 @@ S3method(print,ibist_mantelhaen_asymcheck)
 S3method(print,ibist_ordinal_assoc)
 export(ca.trend.test)
 export(cmh.ll.test)
-export(kappa.test)
+export(cohen.kappa.test)
 export(demo_clt)
 export(logistic.gof)
 export(logistic_gof)
 export(mantelhaen.asymcheck)
-export(ordinal.assoc)
 export(or.2x2.ci)
 export(or.common.ci)
 export(or.common.test)
 export(or.homogeneity.test)
+export(ordinal.assoc)
 export(power.p1s.test)
 export(power.p2s.test)
 export(prop.paired.ci)
@@ -23,25 +23,27 @@ export(rate.1s.ci)
 export(rate.2s.ci)
 export(rate.test)
 importFrom(Rcpp,evalCpp)
-importFrom(stats,aggregate)
-importFrom(stats,coef)
-importFrom(stats,dbinom)
-importFrom(stats,density)
-importFrom(stats,dnorm)
-importFrom(stats,family)
-importFrom(stats,fitted)
-importFrom(stats,formula)
-importFrom(stats,model.frame)
-importFrom(stats,model.matrix)
-importFrom(stats,model.response)
-importFrom(stats,model.weights)
-importFrom(stats,optimize)
-importFrom(stats,pbinom)
-importFrom(stats,pchisq)
-importFrom(stats,pnorm)
-importFrom(stats,printCoefmat)
-importFrom(stats,qbinom)
-importFrom(stats,qchisq)
-importFrom(stats,qnorm)
-importFrom(stats,uniroot)
+importFrom(stats,
+  aggregate,
+  coef,
+  dbinom,
+  density,
+  dnorm,
+  family,
+  fitted,
+  formula,
+  model.frame,
+  model.matrix,
+  model.response,
+  model.weights,
+  optimize,
+  pbinom,
+  pchisq,
+  pnorm,
+  printCoefmat,
+  qbinom,
+  qchisq,
+  qnorm,
+  uniroot
+)
 useDynLib(ibist, .registration = TRUE)

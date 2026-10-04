@@ -6,40 +6,40 @@
 #'
 #' @param x A square matrix or table of non-negative integer counts. Rows and
 #'   columns represent the same ordered rating categories.
-#' @param weights The agreement weights: code{"unweighted"}, code{"linear"},
-#'   code{"quadratic"}, or a numeric matrix of user-specified weights. The
-#'   named choices use category positions in code{x}; the quadratic weights
+#' @param weights The agreement weights: \code{"unweighted"}, \code{"linear"},
+#'   \code{"quadratic"}, or a numeric matrix of user-specified weights. The
+#'   named choices use category positions in \code{x}; the quadratic weights
 #'   are Fleiss--Cohen weights. A supplied matrix must have the same dimensions
-#'   as code{x}, be symmetric, have ones on the diagonal, and contain values
+#'   as \code{x}, be symmetric, have ones on the diagonal, and contain values
 #'   between zero and one.
 #' @param conf.level Confidence level for the two-sided Wald confidence
 #'   interval.
-#' @param alternative Alternative hypothesis: code{"two.sided"},
-#'   code{"greater"}, or code{"less"}.
+#' @param alternative Alternative hypothesis: \code{"two.sided"},
+#'   \code{"greater"}, or \code{"less"}.
 #'
 #' @details
 #' The confidence interval uses the large-sample variance of the kappa
 #' estimate. The test uses the variance under the null hypothesis
 #' \eqn{\kappa = 0}; these variances are not interchangeable. The formulas
 #' follow Fleiss, Cohen, and Everitt (1969) and the corresponding SAS
-#' code{PROC FREQ} formulas. The interval is an untruncated Wald interval.
+#' \code{PROC FREQ} formulas. The interval is an untruncated Wald interval.
 #'
-#' This function provides asymptotic inference only. SAS code{PROC FREQ}
+#' This function provides asymptotic inference only. SAS \code{PROC FREQ}
 #' also provides exact tests for simple and weighted kappa; exact inference is
 #' not implemented here.
 #'
-#' @return An object of class code{"htest"} containing the estimate,
+#' @return An object of class \code{"htest"} containing the estimate,
 #'   confidence interval, Z statistic, and p-value. It also includes the
 #'   standard error used for the confidence interval, the standard error under
 #'   the null hypothesis, the weight matrix, and the sample size.
 #'
 #' @references
 #' Fleiss, J. L., Cohen, J., and Everitt, B. S. (1969). Large sample standard
-#' errors of kappa and weighted kappa. emph{Psychological Bulletin}, 72(5),
+#' errors of kappa and weighted kappa. \emph{Psychological Bulletin}, 72(5),
 #' 323--327. \doi{10.1037/h0028106}
 #'
 #' SAS Institute Inc. (2015). Tests and measures of agreement. In
-#' emph{Base SAS 9.4 Procedures Guide: Statistical Procedures, Third Edition}.
+#' \emph{Base SAS 9.4 Procedures Guide: Statistical Procedures, Third Edition}.
 #' \url{https://support.sas.com/documentation/cdl/en/procstat/67528/HTML/default/procstat_freq_details76.htm}
 #'
 #' @examples
@@ -53,11 +53,11 @@
 #'   nrow = 6,
 #'   byrow = TRUE
 #' )
-#' kappa.test(peff)
-#' kappa.test(peff, weights = "quadratic")
+#' cohen.kappa.test(peff)
+#' cohen.kappa.test(peff, weights = "quadratic")
 #'
 #' @export
-kappa.test <- function(
+cohen.kappa.test <- function(
   x,
   weights = "unweighted",
   conf.level = 0.95,
