@@ -3,9 +3,10 @@ test_that("Cochran-Armitage test matches its signed statistic", {
   scores <- c(1, 2, 4)
   pbar <- sum(tab[, 1]) / sum(tab)
   xbar <- sum(rowSums(tab) * scores) / sum(tab)
+  variance <- pbar * (1 - pbar) *
+    sum(rowSums(tab) * (scores - xbar)^2)
   expected <- sum(scores * (tab[, 1] - rowSums(tab) * pbar)) /
-    sqrt(pbar * (1 - pbar) *
-           sum(rowSums(tab) * (scores - xbar)^2))
+    sqrt(variance)
 
   result <- ca.trend.test(tab, scores = scores)
 
@@ -21,12 +22,11 @@ test_that("exact trend test agrees with direct conditional enumeration", {
   observed <- sum(scores * tab[, 1])
   allocations <- expand.grid(rep(list(0:2), 3))
   allocations <- allocations[rowSums(allocations) == sum(tab[, 1]), ]
-  weights <- apply(
-    allocations,
-    1,
-    function(k) prod(choose(rowSums(tab), k)) /
-      choose(sum(tab), sum(tab[, 1]))
-  )
+  row.totals <- rowSums(tab)
+  event.total <- sum(tab[, 1])
+  weights <- apply(allocations, 1, function(k) {
+    prod(choose(row.totals, k)) / choose(sum(row.totals), event.total)
+  })
   statistic <- as.matrix(allocations) %*% scores
   lower <- sum(weights[statistic <= observed + 1e-12])
   upper <- sum(weights[statistic >= observed - 1e-12])
@@ -35,16 +35,12 @@ test_that("exact trend test agrees with direct conditional enumeration", {
 
   expect_s3_class(result, "htest")
   expect_equal(result$p.value, min(1, 2 * min(lower, upper)))
-  expect_equal(
-    ca.trend.test(tab, scores = scores, exact = TRUE,
-                  alternative = "greater")$p.value,
-    upper
-  )
-  expect_equal(
-    ca.trend.test(tab, scores = scores, exact = TRUE,
-                  alternative = "less")$p.value,
-    lower
-  )
+  exact.p <- function(alt) {
+    ca.trend.test(tab, scores = scores, alternative = alt,
+                  exact = TRUE)$p.value
+  }
+  expect_equal(exact.p("greater"), upper)
+  expect_equal(exact.p("less"), lower)
 })
 
 test_that("trend test validates tables, scores, and exact flag", {
