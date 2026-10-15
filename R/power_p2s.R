@@ -20,10 +20,12 @@
 #' @param alternative Character string specifying the alternative
 #'   hypothesis, either \code{"two.sided"} or \code{"one.sided"}.
 #' @param correct Logical; if \code{TRUE}, apply continuity correction in the
-#'   normal approximation.
+#'   normal approximation. The default is \code{FALSE}, matching the
+#'   uncorrected normal approximation in \code{stats::power.prop.test()}.
 #' @param strict Logical; if \code{TRUE} and \code{alternative = "two.sided"},
 #'   computes power accounting for both tails explicitly. Otherwise uses
-#'   the standard one-sided approximation.
+#'   the standard one-sided approximation. The default is \code{FALSE},
+#'   matching \code{stats::power.prop.test()}.
 #' @param tol Tolerance for numerical root-finding when solving for an
 #'   unknown parameter.
 #'
@@ -69,7 +71,7 @@ power.p2s.test <- function(n = NULL, p1 = NULL, p2 = NULL,
                            sig.level = 0.05, power = NULL,
                            group.rate = 1,
                            alternative = c("two.sided", "one.sided"),
-                           correct = TRUE,
+                           correct = FALSE,
                            strict = FALSE, 
                            tol = .Machine$double.eps^0.25) {
     if (sum(sapply(list(n, p1, p2, power, sig.level), is.null)) != 1) 

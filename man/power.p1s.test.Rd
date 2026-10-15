@@ -14,7 +14,7 @@ power.p1s.test(
   correct = FALSE,
   exact = FALSE,
   exact.method = c("quantile", "midp", "midp-rand", "cp"),
-  strict = TRUE,
+  strict = FALSE,
   tol = .Machine$double.eps^0.5,
   max_n = 1e+07,
   size.rule = c("close", "minimal"),
@@ -37,7 +37,8 @@ hypothesis; one of \code{"two.sided"}, \code{"less"}, or
 \code{"greater"}.}
 
 \item{correct}{Logical; if \code{TRUE}, apply continuity correction in the
-normal approximation.}
+normal approximation. The default is \code{FALSE}, matching the
+uncorrected normal approximation in \code{stats::power.prop.test()}.}
 
 \item{exact}{Logical; if \code{TRUE}, use an exact binomial method.}
 
@@ -52,7 +53,8 @@ to guarantee size not exceeding \code{sig.level}.}
 
 \item{strict}{Logical; if \code{TRUE} and \code{alternative = "two.sided"},
 computes power accounting for both tails explicitly. Otherwise uses
-the standard one-sided approximation.}
+the standard one-sided approximation. The default is \code{FALSE},
+matching \code{stats::power.prop.test()}.}
 
 \item{tol}{Numerical tolerance used in root finding.}
 

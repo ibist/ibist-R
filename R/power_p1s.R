@@ -54,7 +54,8 @@
 #'   hypothesis; one of \code{"two.sided"}, \code{"less"}, or
 #'   \code{"greater"}.
 #' @param correct Logical; if \code{TRUE}, apply continuity correction in the
-#'   normal approximation.
+#'   normal approximation. The default is \code{FALSE}, matching the
+#'   uncorrected normal approximation in \code{stats::power.prop.test()}.
 #' @param exact Logical; if \code{TRUE}, use an exact binomial method.
 #' @param exact.method Method used for exact binomial power calculation.
 #'   \code{"quantile"} uses fixed binomial rejection regions for stable
@@ -66,7 +67,8 @@
 #'   to guarantee size not exceeding \code{sig.level}.
 #' @param strict Logical; if \code{TRUE} and \code{alternative = "two.sided"},
 #'   computes power accounting for both tails explicitly. Otherwise uses
-#'   the standard one-sided approximation.
+#'   the standard one-sided approximation. The default is \code{FALSE},
+#'   matching \code{stats::power.prop.test()}.
 #' @param tol Numerical tolerance used in root finding.
 #' @param max_n Maximum allowable sample size when solving for \code{n}.
 #' @param size.rule Character string specifying the rule used to select
@@ -152,7 +154,7 @@ power.p1s.test <- function(
   correct = FALSE,
   exact = FALSE,
   exact.method = c("quantile", "midp", "midp-rand", "cp"),
-  strict = TRUE,
+  strict = FALSE,
   tol = .Machine$double.eps^0.5,
   max_n = 1e7,
   size.rule = c("close", "minimal"),

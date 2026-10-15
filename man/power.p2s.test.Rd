@@ -12,7 +12,7 @@ power.p2s.test(
   power = NULL,
   group.rate = 1,
   alternative = c("two.sided", "one.sided"),
-  correct = TRUE,
+  correct = FALSE,
   strict = FALSE,
   tol = .Machine$double.eps^0.25
 )
@@ -37,11 +37,13 @@ groups, defined as \eqn{n_2 / n_1}. Defaults to 1 (equal group sizes).}
 hypothesis, either \code{"two.sided"} or \code{"one.sided"}.}
 
 \item{correct}{Logical; if \code{TRUE}, apply continuity correction in the
-normal approximation.}
+normal approximation. The default is \code{FALSE}, matching the
+uncorrected normal approximation in \code{stats::power.prop.test()}.}
 
 \item{strict}{Logical; if \code{TRUE} and \code{alternative = "two.sided"},
 computes power accounting for both tails explicitly. Otherwise uses
-the standard one-sided approximation.}
+the standard one-sided approximation. The default is \code{FALSE},
+matching \code{stats::power.prop.test()}.}
 
 \item{tol}{Tolerance for numerical root-finding when solving for an
 unknown parameter.}
