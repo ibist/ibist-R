@@ -41,6 +41,28 @@ test_that("ordinal.assoc reports shared tests for concordance measures", {
   expect_true(any(grepl("Concordance-based measures share the same test", output)))
 })
 
+test_that("the shared-test note wraps to the configured output width", {
+  tab <- matrix(c(12, 3, 1, 4, 9, 2, 1, 5, 13), nrow = 3, byrow = TRUE)
+  result <- ordinal.assoc(tab, measure = c("gamma", "tau-b", "pearson"))
+  old <- options(width = 80)
+  on.exit(options(old))
+
+  for (width in c(60, 80)) {
+    options(width = width)
+    output <- capture.output(returned <- print(result))
+    first <- grep("Note: Concordance-based", output)
+    last <- grep("Alternative:", output) - 1L
+    note <- output[first:last]
+
+    expect_gt(length(note), 1L)
+    expect_true(all(nchar(output) <= width))
+    expect_true(all(startsWith(note, "  ")))
+    expect_match(paste(trimws(note), collapse = " "),
+                 "identical test results are not separate tests\\.$")
+    expect_identical(returned, result)
+  }
+})
+
 test_that("Pearson category scores can be specified", {
   tab <- matrix(c(10, 1, 2, 8), nrow = 2, byrow = TRUE)
   default <- ordinal.assoc(tab, measure = "pearson")

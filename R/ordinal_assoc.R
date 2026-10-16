@@ -433,11 +433,10 @@ print.ibist_ordinal_assoc <- function(
     c("gamma", "tau-b", "tau-c", "somers-c|r", "somers-r|c")
   )
   if (length(concordance.measures) > 1L) {
-    cat(
-      "  Note: Concordance-based measures share the same test; their ",
-      "identical test results are not separate tests.\n",
-      sep = ""
-    )
+    note <- paste("Note: Concordance-based measures share the same test; their",
+                  "identical test results are not separate tests.")
+    cat(strwrap(note, width = getOption("width"), indent = 2, exdent = 2),
+        sep = "\n")
   }
   cat("  Alternative:", x$alternative, "\n")
   tests <- cbind(
