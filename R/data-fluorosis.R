@@ -17,7 +17,8 @@
 #'
 #' @format A data frame with 24 rows and 5 variables:
 #' \describe{
-#'   \item{om}{Oral hygiene measure (factor with levels 0, 1)}
+#'   \item{om}{Otitis media during early childhood
+#'   (factor: 0 = no, 1 = yes)}
 #'   \item{fl_lev}{Fluoride level (factor with levels 1, 2, 3)}
 #'   \item{amox}{Amoxicillin use during early childhood
 #'   (factor: 0 = no, 1 = yes)}
@@ -28,7 +29,7 @@
 #'
 #' @details
 #' The data have a 2 x 3 x 2 x 2 factorial structure:
-#' oral hygiene (2 levels), fluoride level (3 levels),
+#' otitis media status (2 levels), fluoride level (3 levels),
 #' amoxicillin use (2 levels), and fluorosis status
 #' (2 levels). The counts sum to 308 subjects.
 #'
@@ -37,7 +38,7 @@
 #' Wefel JS (2005). Association of amoxicillin use during
 #' early childhood with developmental tooth enamel defects.
 #' \emph{Archives of Pediatrics & Adolescent Medicine},
-#' 159(10), 943–948.
+#' 159(10), 943--948.
 #'
 #' @examples
 #' data(fluorosis)
