@@ -27,7 +27,8 @@ between zero and one.}
 interval.}
 
 \item{alternative}{Alternative hypothesis: \code{"two.sided"},
-\code{"greater"}, or \code{"less"}.}
+\code{"greater"}, or \code{"less"}. This affects only the test;
+the confidence interval is always two-sided.}
 
 \item{test.variance}{Variance used for the test: \code{"fce"} for the
 Fleiss--Cohen--Everitt null variance, or \code{"delta"} for the
@@ -54,7 +55,8 @@ variance under the null hypothesis \eqn{\kappa = 0}. Setting
 \code{test.variance = "delta"} instead uses the delta-method variance
 evaluated at the observed cell proportions. Evaluating the delta-method
 variance under the null gives the FCE null variance, so it is not a separate
-test option. The interval is an untruncated Wald interval.
+test option. The interval is an untruncated, two-sided Wald interval,
+regardless of \code{alternative}.
 
 This function provides asymptotic inference only. SAS \code{PROC FREQ}
 also provides exact tests for simple and weighted kappa; exact inference is
