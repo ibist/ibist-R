@@ -17,6 +17,7 @@
 #'   one-sample tests, the interval is the score confidence interval for the
 #'   rate. For two-sample tests, the interval is the log-Wald confidence
 #'   interval for the rate ratio.
+#'   The interval direction follows \code{alternative}.
 #' @param correct logical; if \code{TRUE}, applies a continuity correction on
 #'   the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
 #'   to \eqn{x} in the direction determined by \code{alternative}. For
@@ -68,6 +69,13 @@
 #' For two-sample tests, the confidence interval is for the rate ratio
 #' \eqn{\lambda_1/\lambda_2}. The log-Wald interval requires both event counts
 #' to be positive.
+#' With \code{alternative = "greater"}, a lower confidence bound is returned
+#' with upper endpoint \code{Inf}; with \code{"less"}, an upper confidence
+#' bound is returned with lower endpoint zero. The finite bound uses
+#' \eqn{z_{1-\alpha}} rather than \eqn{z_{1-\alpha/2}}, where
+#' \eqn{\alpha} is one minus \code{conf.level}. The two-sample log-Wald interval is
+#' not an inversion of the conditional binomial test, so CI and test decisions
+#' need not agree exactly.
 #'
 #' @return
 #' An object of class \code{"htest"} containing:
@@ -152,13 +160,8 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
                         "greater"   = pnorm(z, lower.tail = FALSE)
                         )
       
-      conf.int <- rate.1s.ci(
-          x = x,
-          exposure = exposure,
-          conf.level = conf.level,
-          method = "score",
-          correct = correct
-      )$conf.int[1L, ]
+      conf.int <- ci_score(x, exposure, conf.level, correct,
+                           alternative = alternative)
       
       estimate <- c(rate = x / exposure)
       null.value <- c(rate = r)
@@ -179,9 +182,7 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
           stop("at least one event is required for the 2-sample test")
       }
 
-      ci <- rate.2s.ci(
-          x, exposure, conf.level = conf.level, method = "log"
-      )
+      ci <- rate.2s.ci(x, exposure, conf.level = conf.level, method = "log")
       
       ## Conditional binomial test under H0 via prop.test()
       n  <- x1 + x2
@@ -191,7 +192,8 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
                               conf.level = conf.level, correct = correct)
       
       ## Estimation target: rate ratio
-      conf.int <- ci$conf.int[1L, ]
+      conf.int <- ci_rate_ratio_log(x, exposure, conf.level,
+                                    alternative = alternative)
       
       estimate <- ci$estimate
       null.value <- c("rate ratio" = 1)
@@ -216,7 +218,8 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
       statistic   = statistic,
       parameter   = parameter,
       p.value     = as.numeric(p.value),
-      conf.int    = structure(conf.int, conf.level = conf.level),
+      conf.int    = structure(stats::setNames(conf.int, c("lower", "upper")),
+                              conf.level = conf.level),
       estimate    = estimate,
       null.value  = null.value,
       alternative = alternative,

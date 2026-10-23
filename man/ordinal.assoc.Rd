@@ -25,13 +25,14 @@ Rows and columns must be ordered from the lowest to highest category.}
 \code{"pearson"}, and \code{"spearman"}. By default, all seven are
 computed.}
 
-\item{conf.level}{Confidence level for the two-sided asymptotic confidence
+\item{conf.level}{Confidence level for the asymptotic confidence
 intervals.}
 
 \item{alternative}{Alternative hypothesis for the tests:
 \code{"two.sided"}, \code{"greater"}, or \code{"less"}. Positive
 association means that higher row categories tend to occur with higher
-column categories.}
+column categories. Also determines the direction of the confidence
+intervals.}
 
 \item{row.scores, col.scores}{Optional numeric scores for row and column
 categories when computing Pearson correlation. By default, numeric
@@ -66,7 +67,13 @@ where A_ij and D_ij are the concordant and discordant contributions for cell
 The concordance-based measures share a test statistic, but Pearson and
 Spearman correlations use their own multinomial null variances. Standard
 errors and confidence intervals are computed separately for each measure.
-Confidence intervals are two-sided regardless of the test alternative.
+For \code{alternative = "two.sided"}, intervals are untruncated Wald
+intervals using \eqn{z_{1-\alpha/2}}. For \code{"greater"} or \code{"less"},
+the finite bound uses \eqn{z_{1-\alpha}}, with the other endpoint at 1 or
+-1, respectively; the finite bound is restricted to \eqn{[-1,1]}.
+Here \eqn{\alpha} is one minus \code{conf.level}. Intervals use estimation
+variances rather than null variances, so they need not agree exactly with
+decisions from the corresponding tests.
 Rows and columns with zero marginal totals are dropped before computation.
 
 The \code{"somers-c|r"} measure is Somers' Delta(C|R), treating the row

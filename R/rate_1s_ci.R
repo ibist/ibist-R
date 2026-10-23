@@ -133,9 +133,10 @@ ci_exact <- function(x, exposure, conf.level, ...) {
   c(lower, upper)
 }
 
-ci_score <- function(x, exposure, conf.level, correct = TRUE, ...) {
+ci_score <- function(x, exposure, conf.level, correct = TRUE,
+                     alternative = "two.sided", ...) {
   alpha <- 1 - conf.level
-  z <- qnorm(1 - alpha / 2)
+  z <- qnorm(if (alternative == "two.sided") 1 - alpha / 2 else conf.level)
 
   if (correct) {
     ## optional: adjust x → x ± 0.5
@@ -151,7 +152,10 @@ ci_score <- function(x, exposure, conf.level, correct = TRUE, ...) {
   upper <- (2 * x_upper + z^2 +
             z * sqrt(z^2 + 4 * x_upper)) / (2 * exposure)
 
-  c(lower, upper)
+  switch(alternative,
+         two.sided = c(lower, upper),
+         greater = c(max(0, lower), Inf),
+         less = c(0, upper))
 }
 
 ci_wh <- function(x, exposure, conf.level, correct = TRUE, ...) {

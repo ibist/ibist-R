@@ -12,11 +12,11 @@
 #'   are Fleiss--Cohen weights. A supplied matrix must have the same dimensions
 #'   as \code{x}, be symmetric, have ones on the diagonal, and contain values
 #'   between zero and one.
-#' @param conf.level Confidence level for the two-sided Wald confidence
+#' @param conf.level Confidence level for the Wald confidence
 #'   interval.
 #' @param alternative Alternative hypothesis: \code{"two.sided"},
-#'   \code{"greater"}, or \code{"less"}. This affects only the test;
-#'   the confidence interval is always two-sided.
+#'   \code{"greater"}, or \code{"less"}. Also determines whether the
+#'   confidence interval is two-sided, a lower bound, or an upper bound.
 #' @param test.variance Variance used for the test: \code{"fce"} for the
 #'   Fleiss--Cohen--Everitt null variance, or \code{"delta"} for the
 #'   multinomial delta-method variance evaluated at the observed proportions.
@@ -30,8 +30,13 @@
 #' \code{test.variance = "delta"} instead uses the delta-method variance
 #' evaluated at the observed cell proportions. Evaluating the delta-method
 #' variance under the null gives the FCE null variance, so it is not a separate
-#' test option. The interval is an untruncated, two-sided Wald interval,
-#' regardless of \code{alternative}.
+#' test option. For \code{alternative = "two.sided"}, the interval is an
+#' untruncated Wald interval using \eqn{z_{1-\alpha/2}}. For \code{"greater"}
+#' or \code{"less"}, the finite bound uses \eqn{z_{1-\alpha}}, with the other
+#' endpoint at 1 or -1, respectively; the finite bound is restricted to
+#' \eqn{[-1,1]}. Here \eqn{\alpha} is one minus \code{conf.level}.
+#' All intervals use the estimation variance, not the null variance, so they
+#' need not agree exactly with decisions from the default FCE test.
 #'
 #' This function provides asymptotic inference only. SAS \code{PROC FREQ}
 #' also provides exact tests for simple and weighted kappa; exact inference is
@@ -66,6 +71,7 @@
 #' cohen.kappa.test(peff)
 #' cohen.kappa.test(peff, weights = "quadratic")
 #' cohen.kappa.test(peff, weights = "quadratic", test.variance = "delta")
+#' cohen.kappa.test(peff, alternative = "greater")
 #'
 #' @export
 cohen.kappa.test <- function(
@@ -181,8 +187,14 @@ cohen.kappa.test <- function(
     greater = stats::pnorm(z, lower.tail = FALSE),
     less = stats::pnorm(z)
   )
-  z.critical <- stats::qnorm(1 - (1 - conf.level) / 2)
-  conf.int <- estimate + c(-1, 1) * z.critical * std.error
+  z.critical <- stats::qnorm(if (alternative == "two.sided") {
+    1 - (1 - conf.level) / 2
+  } else conf.level)
+  limits <- estimate + c(-1, 1) * z.critical * std.error
+  conf.int <- switch(alternative,
+                     two.sided = limits,
+                     greater = c(max(-1, min(1, limits[1])), 1),
+                     less = c(-1, min(1, max(-1, limits[2]))))
   attr(conf.int, "conf.level") <- conf.level
 
   estimate.name <- if (weight.method == "unweighted") {

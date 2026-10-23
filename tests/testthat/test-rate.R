@@ -88,12 +88,11 @@ test_that("rate.test uses score interval for one-sample rate", {
   less <- rate.test(x = 411, exposure = 25800, r = 0.0119,
                     alternative = "less")
   score_ci <- rate.1s.ci(411, exposure = 25800,
+                         conf.level = 0.9,
                          method = "score")$conf.int
 
-  expect_equal(as.numeric(greater$conf.int), as.numeric(score_ci))
-  expect_equal(as.numeric(less$conf.int), as.numeric(score_ci))
-  expect_equal(as.numeric(greater$conf.int), c(0.01444433596, 0.01756689433),
-               tolerance = 1e-7)
+  expect_equal(as.numeric(greater$conf.int), c(score_ci[1], Inf))
+  expect_equal(as.numeric(less$conf.int), c(0, score_ci[2]))
   expect_equal(attr(greater$conf.int, "conf.level"), 0.95)
 })
 

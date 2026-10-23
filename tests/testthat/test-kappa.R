@@ -115,8 +115,12 @@ test_that("kappa test alternatives and input validation work", {
 
   expect_equal(greater$p.value, two.sided$p.value / 2)
   expect_equal(less$p.value, 1 - two.sided$p.value / 2)
-  expect_equal(greater$conf.int, two.sided$conf.int)
-  expect_equal(less$conf.int, two.sided$conf.int)
+  expect_equal(as.numeric(greater$conf.int),
+               c(unname(two.sided$estimate) - qnorm(0.95) *
+                   two.sided$std.error, 1))
+  expect_equal(as.numeric(less$conf.int),
+               c(-1, unname(two.sided$estimate) + qnorm(0.95) *
+                   two.sided$std.error))
   expect_error(cohen.kappa.test(matrix(1:6, nrow = 2)), "square table")
   expect_error(
     cohen.kappa.test(matrix(c(1, -1, 2, 3), nrow = 2)),

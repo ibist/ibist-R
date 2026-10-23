@@ -116,17 +116,22 @@ rate.2s.ci <- function(
   )
 }
 
-ci_rate_ratio_log <- function(x, exposure, conf.level, ...) {
+ci_rate_ratio_log <- function(x, exposure, conf.level,
+                              alternative = "two.sided", ...) {
   if (x[1] == 0 || x[2] == 0) {
     stop("log-Wald confidence interval for the rate ratio requires positive event counts")
   }
 
   alpha <- 1 - conf.level
-  z <- qnorm(1 - alpha / 2)
+  z <- qnorm(if (alternative == "two.sided") 1 - alpha / 2 else conf.level)
   rate_ratio <- (x[1] / exposure[1]) / (x[2] / exposure[2])
   se_log_ratio <- sqrt(1 / x[1] + 1 / x[2])
 
-  exp(log(rate_ratio) + c(-1, 1) * z * se_log_ratio)
+  limits <- exp(log(rate_ratio) + c(-1, 1) * z * se_log_ratio)
+  switch(alternative,
+         two.sided = limits,
+         greater = c(limits[1], Inf),
+         less = c(0, limits[2]))
 }
 
 ci_rate_ratio_score <- function(x, exposure, conf.level, ...) {

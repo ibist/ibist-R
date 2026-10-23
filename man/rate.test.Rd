@@ -30,7 +30,8 @@ one of \code{"two.sided"}, \code{"less"}, or \code{"greater"}.}
 \item{conf.level}{confidence level for the confidence interval. For
 one-sample tests, the interval is the score confidence interval for the
 rate. For two-sample tests, the interval is the log-Wald confidence
-interval for the rate ratio.}
+interval for the rate ratio.
+The interval direction follows \code{alternative}.}
 
 \item{correct}{logical; if \code{TRUE}, applies a continuity correction on
 the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
@@ -105,6 +106,13 @@ For one-sample tests, the confidence interval is the score interval for
 For two-sample tests, the confidence interval is for the rate ratio
 \eqn{\lambda_1/\lambda_2}. The log-Wald interval requires both event counts
 to be positive.
+With \code{alternative = "greater"}, a lower confidence bound is returned
+with upper endpoint \code{Inf}; with \code{"less"}, an upper confidence
+bound is returned with lower endpoint zero. The finite bound uses
+\eqn{z_{1-\alpha}} rather than \eqn{z_{1-\alpha/2}}, where
+\eqn{\alpha} is one minus \code{conf.level}. The two-sample log-Wald interval is
+not an inversion of the conditional binomial test, so CI and test decisions
+need not agree exactly.
 }
 \examples{
 ## One-sample test: compare observed rate to a reference unit rate
