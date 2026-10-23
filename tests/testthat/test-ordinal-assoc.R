@@ -47,18 +47,18 @@ test_that("the shared-test note wraps to the configured output width", {
   old <- options(width = 80)
   on.exit(options(old))
 
-  for (width in c(60, 80)) {
+  for (width in c(40, 80)) {
     options(width = width)
     output <- capture.output(returned <- print(result))
     first <- grep("Note: Concordance-based", output)
     last <- grep("Alternative:", output) - 1L
     note <- output[first:last]
 
-    expect_gt(length(note), 1L)
+    expect_length(note, if (width == 40) 2L else 1L)
     expect_true(all(nchar(output) <= width))
     expect_true(all(startsWith(note, "  ")))
     expect_match(paste(trimws(note), collapse = " "),
-                 "identical test results are not separate tests\\.$")
+                 "^Note: Concordance-based measures share the same test\\.$")
     expect_identical(returned, result)
   }
 })
