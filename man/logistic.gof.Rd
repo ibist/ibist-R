@@ -3,7 +3,7 @@
 \name{logistic.gof}
 \alias{logistic.gof}
 \alias{logistic_gof}
-\title{Pearson Chi-squared Goodness-of-Fit Test for Logistic Regression}
+\title{Pearson and Deviance Goodness-of-Fit Tests for Logistic Regression}
 \usage{
 logistic.gof(fit, min_n = 5, min_expected = 5, pool = TRUE)
 
@@ -40,9 +40,9 @@ Additional components (not printed) include:
 \item{groups}{Data frame of grouped summaries.}
 }
 \description{
-Performs the Pearson chi-squared goodness-of-fit (GoF) test for a
+Performs the Pearson chi-squared and deviance goodness-of-fit (GoF) tests for a
 logistic regression model fitted via \code{glm(..., family = "binomial")}.
-The test assesses calibration by comparing observed and expected
+The tests assess model fit by comparing observed and expected
 counts across covariate patterns.
 }
 \details{
@@ -53,15 +53,23 @@ The Pearson GoF statistic is defined as
 where \eqn{O_\ell} is the observed number of events, \eqn{E_\ell =
 n_\ell \hat{\pi}_\ell} is the expected number of events, and
 \eqn{V_\ell = n_\ell \hat{\pi}_\ell (1 - \hat{\pi}_\ell)} is the
-variance for the \eqn{\ell}-th covariate pattern. Under the null
-hypothesis of correct model specification, \eqn{T_P} approximately
-follows a chi-squared distribution with \eqn{J - (k + 1)} degrees of
-freedom, where \eqn{J} is the number of groups and \eqn{k + 1} is the
-number of model parameters.
+variance for the \eqn{\ell}-th covariate pattern. The deviance statistic is
+\deqn{
+  T_D = 2\sum_{\ell=1}^J \left\{
+    O_\ell\log\frac{O_\ell}{E_\ell} +
+    (n_\ell-O_\ell)\log\frac{n_\ell-O_\ell}{n_\ell-E_\ell}
+  \right\},
+}
+with zero-count contributions defined as zero. Under the null hypothesis
+of correct model specification and adequate group sizes, both statistics
+approximately follow a chi-squared distribution with \eqn{J-r} degrees
+of freedom, where \eqn{J} is the number of groups after any pooling and
+\eqn{r} is the rank of the fitted model matrix, including the intercept
+when present. Each p-value is the corresponding upper-tail probability.
 
-This test requires replicated covariate patterns or grouped binomial
-data. When groups are small, optional pooling can be applied to ensure
-stable chi-squared approximation.
+These tests require replicated covariate patterns or grouped binomial
+data. Optional pooling combines small groups; it does not guarantee
+an adequate chi-squared approximation.
 
 
 The function supports three types of binomial responses:
@@ -72,12 +80,16 @@ The function supports three types of binomial responses:
 }
 
 When no replication exists (i.e., each observation has a unique
-covariate pattern), the Pearson GoF test is not appropriate. In such
+covariate pattern with a single binary outcome), neither chi-squared
+approximation is appropriate. In such
 cases, consider alternative methods such as the Hosmer--Lemeshow test.
 
-Pooling stabilizes the test by merging adjacent groups with small
-counts, trading a small bias for reduced variance in the chi-squared
-approximation.
+Both statistics use the same groups and degrees of freedom. Pooling merges
+adjacent groups ordered by fitted probability and uses their combined
+observed and expected counts. These are approximate pooled GoF tests, not
+the original unpooled tests. The grouped deviance need not equal
+\code{deviance(fit)} when the model was fitted to individual binary outcomes
+or when pooling is used.
 }
 \examples{
 ## Example: Surfactant use and birthweight (RDS data)
@@ -88,7 +100,7 @@ fit <- glm(death ~ surf + bwt,
   family = "binomial"
 )
 
-## Pearson GoF test with pooling (default)
+## Pearson and deviance GoF tests with pooling (default)
 (res <- logistic.gof(fit))
 
 ## Without pooling (may be unstable if small groups exist)
