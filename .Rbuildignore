@@ -11,6 +11,7 @@
 ^README\.Rmd$
 ^README\.html$
 ^README_cache$
+^CROSS_LANGUAGE_DEVELOPMENT\.md$
 ^TAGS$
 ^TODO\.org$
 ^\#
