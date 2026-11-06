@@ -8,7 +8,8 @@ prop.2s.ci(
   x,
   n = NULL,
   conf.level = 0.95,
-  method = c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo"),
+  method = c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo",
+    "brown-li"),
   correct = FALSE,
   alternative = c("two.sided", "less", "greater"),
   tol = 1e-08
@@ -23,7 +24,8 @@ rows are independent samples and columns are successes and failures.}
 \item{conf.level}{Confidence level, between 0 and 1.}
 
 \item{method}{One or more of \code{"newcombe"} (default), \code{"wald"},
-\code{"miettinen-nurminen"}, \code{"mee"}, or \code{"agresti-caffo"}.}
+\code{"miettinen-nurminen"}, \code{"mee"}, \code{"agresti-caffo"},
+or \code{"brown-li"}.}
 
 \item{correct}{Logical. Apply continuity correction to Newcombe and Wald
 intervals. Other requested methods are unchanged.}
@@ -57,12 +59,25 @@ estimates and score inversion but omits this variance factor. The factor
 is always included for \code{"miettinen-nurminen"} and never included for
 \code{"mee"}; it is not controlled by the continuity-correction argument
 \code{correct}. All limits are restricted to \eqn{[-1,1]}.
+
+Brown--Li's Jeffreys-based normal approximation uses
+\eqn{\bar p_i=(x_i+1/2)/(n_i+1)} and the limits
+\deqn{\bar p_1-\bar p_2 \mathbin{\pm} z
+  \sqrt{\bar p_1(1-\bar p_1)/n_1+\bar p_2(1-\bar p_2)/n_2}.}
+Here \eqn{z} is the standard-normal quantile corresponding to the requested
+confidence level and alternative. The variance denominators are the
+original sample sizes, not the adjusted sample sizes or posterior-variance
+denominators. This approximate interval is not obtained from quantiles of
+the posterior difference. As for Agresti--Caffo, the reported point estimate
+remains the observed proportion difference, even though the interval uses
+adjusted proportions internally.
 }
 \examples{
 prop.2s.ci(c(1366, 383), c(15571, 5366))
 prop.2s.ci(c(12, 4), c(40, 40), method = c("newcombe", "wald"))
 prop.2s.ci(c(12, 4), c(40, 30),
             method = c("miettinen-nurminen", "mee"))
+prop.2s.ci(c(9, 3), c(10, 10), method = c("newcombe", "brown-li"))
 prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
 tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 prop.2s.ci(tab)
@@ -71,6 +86,10 @@ prop.2s.ci(tab)
 Agresti, A., and Caffo, B. (2000). Simple and effective confidence intervals
 for proportions and differences of proportions result from adding two
 successes and two failures. \emph{The American Statistician}, 54, 280--288.
+
+Brown, L., and Li, X. (2005). Confidence intervals for two sample binomial
+distribution. \emph{Journal of Statistical Planning and Inference}, 130,
+359--375. \doi{10.1016/j.jspi.2003.09.039}
 
 Mee, R. W. (1984). Confidence bounds for the difference between two
 probabilities. \emph{Biometrics}, 40, 1175--1176.

@@ -78,6 +78,12 @@ For independent proportions:
   as Miettinen–Nurminen, with no `(n1+n2)/(n1+n2-1)` variance factor. Select
   `method = "mee"`; `correct` remains a continuity-correction argument for
   Wald and Newcombe and does not switch between these score methods.
+- **Brown–Li:** set `pbar_i=(x_i+0.5)/(n_i+1)` and form a normal-approximation
+  interval centered at `pbar_1-pbar_2`, with variance
+  `pbar_1*(1-pbar_1)/n1 + pbar_2*(1-pbar_2)/n2`. The denominators are the
+  original sample sizes. This is not a posterior-quantile interval; retain
+  the observed difference as the reported estimate. Continuity correction
+  does not apply. Restrict the limits to `[-1,1]`.
 
 Restrict difference limits to `[-1,1]`. For the ratio:
 
@@ -106,6 +112,18 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
   Agresti–Coull, Wilson, and Clopper–Pearson limits for 341/762 at 90%.
 - Output 41.5.3 (p. 2861) supplies Katz risk-ratio limits for rows `(11,4)`
   and `(2,6)`, for both choices of event column.
+- Brown–Li reference values from the search-extracted WUSS table are
+  `(56/70,48/80)`, with 95% limits
+  `(0.0540,0.3400)`, and `(9/10,3/10)`, with limits `(0.1869,0.9040)`.
+  For `(10/10,0/20)`, the published lower limit is `0.7854` and the raw upper
+  limit exceeds one; ibist truncates it to one. See Table 2, p. 9, in the
+  [WUSS comparison paper](https://www.lexjansen.com/wuss/2016/127_Final_Paper_PDF.pdf).
+  The PDF has not been downloaded or visually checked, so these values still
+  need confirmation against the original document. They supplement the
+  independently executed formula and DescTools checks.
+  Formula tests distinguish the original sample-size denominators from
+  adjusted sample sizes and posterior variances. Hidden DescTools comparisons
+  use `method = "blj"` with absolute tolerance `1e-10`.
 - Base R checks cover Wilson and Clopper–Pearson intervals and Wald
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.

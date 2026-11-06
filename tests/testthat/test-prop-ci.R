@@ -88,7 +88,8 @@ test_that("vector inputs and multiple methods keep input and method order", {
 
 test_that("independent-proportion interfaces accept counts and tables", {
   tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
-  methods <- c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo")
+  methods <- c("newcombe", "wald", "miettinen-nurminen", "mee",
+               "agresti-caffo", "brown-li")
   result <- prop.2s.ci(c(38, 267), c(100, 984), method = methods)
   expect_equal(result, prop.2s.ci(tab, method = methods))
   expect_equal(unname(result$estimate), 38 / 100 - 267 / 984)
@@ -113,6 +114,37 @@ test_that("Newcombe combines the separate Wilson distances", {
     ours <- prop.2s.ci(x, n, correct = correct)
     expect_equal(as.numeric(ours$conf.int), expected)
   }
+})
+
+test_that("Brown-Li intervals reproduce indexed WUSS comparison values", {
+  ## Search-extracted WUSS 2016, paper 127, Table 2, p. 9 (Brown-Li row).
+  ## These values have not yet been visually verified against the PDF.
+  cases <- list(list(x = c(56, 48), n = c(70, 80),
+                     expected = c(0.0540, 0.3400)),
+                list(x = c(9, 3), n = c(10, 10),
+                     expected = c(0.1869, 0.9040)),
+                list(x = c(10, 0), n = c(10, 20),
+                     expected = c(0.7854, 1)))
+  for (case in cases) {
+    result <- prop.2s.ci(case$x, case$n, method = "brown-li")
+    expect_equal(round(as.numeric(result$conf.int), 4), case$expected)
+    proportions <- case$x / case$n
+    expect_equal(unname(result$estimate), proportions[1] - proportions[2])
+  }
+})
+
+test_that("Brown-Li uses adjusted proportions and original sample sizes", {
+  x <- c(9, 3)
+  n <- c(10, 10)
+  adjusted <- (x + 0.5) / (n + 1)
+  center <- adjusted[1] - adjusted[2]
+  variance <- sum(adjusted * (1 - adjusted) / n)
+  result <- prop.2s.ci(x, n, method = "brown-li")
+  expect_equal(as.numeric(result$conf.int),
+               center + c(-1, 1) * qnorm(0.975) * sqrt(variance))
+  expect_equal(unname(result$estimate), 0.6)
+  expect_gt(abs(unname(result$estimate) - center), 0.05)
+  expect_gt(variance, sum(adjusted * (1 - adjusted) / (n + 1)))
 })
 
 test_that("Miettinen-Nurminen and Mee limits satisfy their score equations", {
@@ -156,7 +188,7 @@ test_that("independent intervals reverse sign and give one-sided bounds", {
   for (x in list(c(0, 0), c(0, 5), c(3, 0), c(3, 5), c(2, 4))) {
     n <- c(3, 5)
     for (method in c("newcombe", "wald", "miettinen-nurminen", "mee",
-                     "agresti-caffo")) {
+                     "agresti-caffo", "brown-li")) {
       result <- prop.2s.ci(x, n, conf.level = 0.9, method = method)
       reverse <- prop.2s.ci(rev(x), rev(n), conf.level = 0.9, method = method)
       expect_equal(as.numeric(result$conf.int),
@@ -189,5 +221,7 @@ test_that("binomial interval functions reject invalid and inapplicable inputs", 
   expect_error(prop.2s.ci(c(1, 2), c(3, 3), method = "agresti-caffo",
                          correct = TRUE), "applies only")
   expect_error(prop.2s.ci(c(1, 2), c(3, 3), method = "mee",
+                         correct = TRUE), "applies only")
+  expect_error(prop.2s.ci(c(1, 2), c(3, 3), method = "brown-li",
                          correct = TRUE), "applies only")
 })

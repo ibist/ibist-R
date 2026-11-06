@@ -7,7 +7,8 @@
 #' @param n Numeric vector of two positive sample sizes. Omit for a table.
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"newcombe"} (default), \code{"wald"},
-#'   \code{"miettinen-nurminen"}, \code{"mee"}, or \code{"agresti-caffo"}.
+#'   \code{"miettinen-nurminen"}, \code{"mee"}, \code{"agresti-caffo"},
+#'   or \code{"brown-li"}.
 #' @param correct Logical. Apply continuity correction to Newcombe and Wald
 #'   intervals. Other requested methods are unchanged.
 #' @param alternative One of \code{"two.sided"}, \code{"less"}, or
@@ -31,6 +32,18 @@
 #' \code{"mee"}; it is not controlled by the continuity-correction argument
 #' \code{correct}. All limits are restricted to \eqn{[-1,1]}.
 #'
+#' Brown--Li's Jeffreys-based normal approximation uses
+#' \eqn{\bar p_i=(x_i+1/2)/(n_i+1)} and the limits
+#' \deqn{\bar p_1-\bar p_2 \mathbin{\pm} z
+#'   \sqrt{\bar p_1(1-\bar p_1)/n_1+\bar p_2(1-\bar p_2)/n_2}.}
+#' Here \eqn{z} is the standard-normal quantile corresponding to the requested
+#' confidence level and alternative. The variance denominators are the
+#' original sample sizes, not the adjusted sample sizes or posterior-variance
+#' denominators. This approximate interval is not obtained from quantiles of
+#' the posterior difference. As for Agresti--Caffo, the reported point estimate
+#' remains the observed proportion difference, even though the interval uses
+#' adjusted proportions internally.
+#'
 #' @return An \code{ibist_ci} object with the observed named \code{estimate},
 #'   a \code{conf.int} matrix with one row per method, \code{conf.level},
 #'   \code{method}, \code{alternative}, and the two \code{sample.proportions}.
@@ -38,6 +51,10 @@
 #' Agresti, A., and Caffo, B. (2000). Simple and effective confidence intervals
 #' for proportions and differences of proportions result from adding two
 #' successes and two failures. \emph{The American Statistician}, 54, 280--288.
+#'
+#' Brown, L., and Li, X. (2005). Confidence intervals for two sample binomial
+#' distribution. \emph{Journal of Statistical Planning and Inference}, 130,
+#' 359--375. \doi{10.1016/j.jspi.2003.09.039}
 #'
 #' Mee, R. W. (1984). Confidence bounds for the difference between two
 #' probabilities. \emph{Biometrics}, 40, 1175--1176.
@@ -53,13 +70,15 @@
 #' prop.2s.ci(c(12, 4), c(40, 40), method = c("newcombe", "wald"))
 #' prop.2s.ci(c(12, 4), c(40, 30),
 #'             method = c("miettinen-nurminen", "mee"))
+#' prop.2s.ci(c(9, 3), c(10, 10), method = c("newcombe", "brown-li"))
 #' prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
 #' tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 #' prop.2s.ci(tab)
 #' @export
 prop.2s.ci <- function(
   x, n = NULL, conf.level = 0.95,
-  method = c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo"),
+  method = c("newcombe", "wald", "miettinen-nurminen", "mee",
+             "agresti-caffo", "brown-li"),
   correct = FALSE, alternative = c("two.sided", "less", "greater"),
   tol = 1e-8
 ) {
@@ -88,6 +107,10 @@ prop.2s.ci <- function(
       } else 1
       limits <- independent_score_limits(counts$x, counts$n, z, tol,
                                           variance.factor)
+    } else if (method == "brown-li") {
+      adjusted <- (counts$x + 0.5) / (counts$n + 1)
+      margin <- z * sqrt(sum(adjusted * (1 - adjusted) / counts$n))
+      limits <- adjusted[1L] - adjusted[2L] + c(-1, 1) * margin
     } else {
       size <- counts$n + if (method == "agresti-caffo") 2 else 0
       center <- (counts$x + if (method == "agresti-caffo") 1 else 0) / size
