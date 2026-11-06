@@ -5,22 +5,28 @@
 #' @param ... Reserved for future extensions.
 #'
 #' @export
-print.ibist_ci <- function(x, digits = getOption("digits"), ...) {
+print.ibist_ci <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   interval <- if (nrow(x$conf.int) == 1L) "interval" else "intervals"
+  cat("\n\tConfidence ", interval, " for ", x$parameter, "\n", sep = "")
+  if (!is.null(x$data.name)) cat("\ndata: ", x$data.name, "\n", sep = "")
+  if (length(x$method) == 1L) cat("method: ", x$method, "\n", sep = "")
+  if (!is.null(x$alternative) && x$alternative != "two.sided") {
+    cat("bound: ", if (x$alternative == "greater") "lower" else "upper",
+        "\n", sep = "")
+  }
+  cat("\nsample estimates:\n")
+  print(x$estimate, digits = digits)
   cat(
     "\n", 100 * x$conf.level, "% confidence ", interval,
-    " for ", x$parameter, "\n\n", sep = ""
+    ":\n", sep = ""
   )
-  if (length(x$estimate) == 1L) {
-    cat("Estimate: ", format(x$estimate, digits = digits), "\n\n", sep = "")
-  } else {
-    cat("Estimates:\n")
-    print(x$estimate, digits = digits)
-    cat("\n")
-  }
   intervals <- x$conf.int
   attr(intervals, "conf.level") <- NULL
-  print(intervals, digits = digits)
+  if (nrow(intervals) == 1L) {
+    print(as.numeric(intervals), digits = digits)
+  } else {
+    print(intervals, digits = digits)
+  }
   invisible(x)
 }
 

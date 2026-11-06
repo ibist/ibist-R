@@ -4,7 +4,7 @@
 \alias{print.ibist_ci}
 \title{Print an ibist Confidence Interval Object}
 \usage{
-\method{print}{ibist_ci}(x, digits = getOption("digits"), ...)
+\method{print}{ibist_ci}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{An object of class \code{"ibist_ci"}.}
