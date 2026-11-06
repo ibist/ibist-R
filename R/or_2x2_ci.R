@@ -133,6 +133,7 @@ validate_2x2_table <- function(x) {
 }
 
 odds_ratio_estimate <- function(tab) {
+  storage.mode(tab) <- "double"
   a <- tab[1L, 1L]
   b <- tab[1L, 2L]
   c <- tab[2L, 1L]

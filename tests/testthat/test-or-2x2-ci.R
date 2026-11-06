@@ -12,6 +12,17 @@ test_that("or.2x2.ci returns stable Wald intervals", {
                tolerance = 1e-6)
 })
 
+test_that("or.2x2.ci avoids integer overflow for large valid counts", {
+  tab <- matrix(c(100000L, 200000L, 300000L, 400000L), nrow = 2, byrow = TRUE)
+  result <- or.2x2.ci(tab)
+  se <- sqrt(1 / 100000 + 1 / 200000 + 1 / 300000 + 1 / 400000)
+  expected <- exp(log(2 / 3) + c(-1, 1) * qnorm(0.975) * se)
+
+  expect_equal(unname(result$estimate), 2 / 3)
+  expect_equal(as.numeric(result$conf.int), expected)
+  expect_type(tab, "integer")
+})
+
 test_that("or.2x2.ci returns the four conditional intervals", {
   tab <- matrix(c(7, 27, 1, 33), nrow = 2, byrow = TRUE)
 
