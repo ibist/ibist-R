@@ -5,8 +5,8 @@ Agreed: 2026-11-06. Last updated: 2026-11-06.
 This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
 The Python repository is [ibist-py](https://github.com/ibist/ibist-py).
-Its initial package structure uses distribution name `ibist-py` and import
-name `ibist`; methods and datasets remain to be implemented. These names
+Its initial package structure uses `ibist` for both the distribution and import
+names; methods and datasets remain to be implemented. These names
 describe the development package and do not imply a reserved PyPI name.
 
 ## Shared statistical specification
@@ -118,7 +118,9 @@ from the Python repository. Keep temporary
 progress and repository state in the project status document.
 
 On 2026-11-06, the authors approved creating `ibist/ibist-py`; this resolves
-the repository name and establishes development distribution and import names.
+the repository name. They subsequently chose `ibist` for both distribution
+and import names to keep installation and usage consistent. A PyPI check on
+that date found no project named `ibist`; the name is not reserved.
 
 Open implementation decisions include Python package-name availability,
 portable data and metadata formats, reference-case storage, release
