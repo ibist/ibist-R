@@ -20,7 +20,7 @@ if (! require(remotes)) install.packages("remotes")
 remotes::install_github("ibist/ibist-R", upgrade = "never")
 ```
 
-The planned Python sister package will follow the
+The [Python sister package](https://github.com/ibist/ibist-py) follows the
 [R and Python development principles](CROSS_LANGUAGE_DEVELOPMENT.md),
 including shared statistical specifications, data preparation, and validation.
 
