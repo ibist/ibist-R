@@ -74,6 +74,10 @@ For independent proportions:
   `p1-p2=delta`, then invert the score statistic using the constrained
   variance multiplied by `(n1+n2)/(n1+n2-1)`. Always include this variance
   factor; it is distinct from continuity correction.
+- **Mee:** use the same constrained likelihood estimates and score inversion
+  as Miettinen–Nurminen, with no `(n1+n2)/(n1+n2-1)` variance factor. Select
+  `method = "mee"`; `correct` remains a continuity-correction argument for
+  Wald and Newcombe and does not switch between these score methods.
 
 Restrict difference limits to `[-1,1]`. For the ratio:
 
@@ -106,13 +110,18 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.
 - Independent likelihood optimization verifies the defining score equations
-  at Miettinen–Nurminen and Koopman endpoints. Small-sample enumeration checks
+  at Miettinen–Nurminen, Mee, and Koopman endpoints. Closed-form zero-event
+  cases distinguish the Mee and Miettinen–Nurminen variance factors.
+  Small-sample enumeration checks
   Blaker acceptance sets and nominal coverage. Tests include zero counts,
   all successes, sample reversal, one-sided bounds, and vector/method ordering.
 - Book examples retain executable `include=FALSE` DescTools comparisons.
   Use absolute tolerances: `1e-10` for closed-form calculations, `1e-6` for
-  Miettinen–Nurminen, `2e-5` for Blaker/Koopman, and `1e-4` for mid-p at the
-  current DescTools defaults. These coarser comparison tolerances do not
+  Miettinen–Nurminen, `2e-5` for Blaker/Koopman, and `1e-4` for Mee and mid-p
+  at the current DescTools defaults. An 81-case Mee comparison across three
+  confidence levels, both one-sided directions, and interior/boundary counts
+  had maximum endpoint difference `3.013e-5`; independent score-equation
+  checks support the tighter native inversion. These comparison tolerances do not
   replace the tighter defining-equation and acceptance-set tests.
 
 The SAS source is the

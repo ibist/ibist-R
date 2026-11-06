@@ -7,7 +7,7 @@
 #' @param n Numeric vector of two positive sample sizes. Omit for a table.
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"newcombe"} (default), \code{"wald"},
-#'   \code{"miettinen-nurminen"}, or \code{"agresti-caffo"}.
+#'   \code{"miettinen-nurminen"}, \code{"mee"}, or \code{"agresti-caffo"}.
 #' @param correct Logical. Apply continuity correction to Newcombe and Wald
 #'   intervals. Other requested methods are unchanged.
 #' @param alternative One of \code{"two.sided"}, \code{"less"}, or
@@ -25,8 +25,11 @@
 #' one success and one failure to each sample before computing a Wald interval.
 #' Miettinen--Nurminen inverts the score statistic using constrained binomial
 #' maximum likelihood estimates and the variance factor
-#' \eqn{(n_1+n_2)/(n_1+n_2-1)}. This factor is always included and is not a
-#' continuity correction. All limits are restricted to \eqn{[-1,1]}.
+#' \eqn{(n_1+n_2)/(n_1+n_2-1)}. Mee's method uses the same constrained
+#' estimates and score inversion but omits this variance factor. The factor
+#' is always included for \code{"miettinen-nurminen"} and never included for
+#' \code{"mee"}; it is not controlled by the continuity-correction argument
+#' \code{correct}. All limits are restricted to \eqn{[-1,1]}.
 #'
 #' @return An \code{ibist_ci} object with the observed named \code{estimate},
 #'   a \code{conf.int} matrix with one row per method, \code{conf.level},
@@ -35,6 +38,9 @@
 #' Agresti, A., and Caffo, B. (2000). Simple and effective confidence intervals
 #' for proportions and differences of proportions result from adding two
 #' successes and two failures. \emph{The American Statistician}, 54, 280--288.
+#'
+#' Mee, R. W. (1984). Confidence bounds for the difference between two
+#' probabilities. \emph{Biometrics}, 40, 1175--1176.
 #'
 #' Miettinen, O., and Nurminen, M. (1985). Comparative analysis of two rates.
 #' \emph{Statistics in Medicine}, 4, 213--226.
@@ -45,13 +51,15 @@
 #' @examples
 #' prop.2s.ci(c(1366, 383), c(15571, 5366))
 #' prop.2s.ci(c(12, 4), c(40, 40), method = c("newcombe", "wald"))
+#' prop.2s.ci(c(12, 4), c(40, 30),
+#'             method = c("miettinen-nurminen", "mee"))
 #' prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
 #' tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 #' prop.2s.ci(tab)
 #' @export
 prop.2s.ci <- function(
   x, n = NULL, conf.level = 0.95,
-  method = c("newcombe", "wald", "miettinen-nurminen", "agresti-caffo"),
+  method = c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo"),
   correct = FALSE, alternative = c("two.sided", "less", "greater"),
   tol = 1e-8
 ) {
@@ -74,8 +82,12 @@ prop.2s.ci <- function(
                                 settings$tail, correct, FALSE, tol)
       limits <- p[1L] - p[2L] + c(-1, 1) * sign(z) *
         sqrt((one - p[1L])^2 + (rev(two) - p[2L])^2)
-    } else if (method == "miettinen-nurminen") {
-      limits <- independent_mn_limits(counts$x, counts$n, z, tol)
+    } else if (method %in% c("miettinen-nurminen", "mee")) {
+      variance.factor <- if (method == "miettinen-nurminen") {
+        sum(counts$n) / (sum(counts$n) - 1)
+      } else 1
+      limits <- independent_score_limits(counts$x, counts$n, z, tol,
+                                          variance.factor)
     } else {
       size <- counts$n + if (method == "agresti-caffo") 2 else 0
       center <- (counts$x + if (method == "agresti-caffo") 1 else 0) / size
@@ -125,7 +137,7 @@ independent_binomial_counts <- function(x, n = NULL) {
   validate_binomial_counts(x, n)
 }
 
-independent_mn_limits <- function(x, n, z, tol) {
+independent_score_limits <- function(x, n, z, tol, variance.factor) {
   estimate <- x[1L] / n[1L] - x[2L] / n[2L]
   score <- function(delta) {
     if (delta == -1) return(if (estimate == -1) 0 else Inf)
@@ -144,7 +156,7 @@ independent_mn_limits <- function(x, n, z, tol) {
       }
     }
     p <- c(q + delta, q)
-    variance <- sum(p * (1 - p) / n) * sum(n) / (sum(n) - 1)
+    variance <- sum(p * (1 - p) / n) * variance.factor
     if (variance <= 0) {
       return(if (estimate == delta) 0 else sign(estimate - delta) * Inf)
     }

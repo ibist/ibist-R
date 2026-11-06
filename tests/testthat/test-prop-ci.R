@@ -88,7 +88,7 @@ test_that("vector inputs and multiple methods keep input and method order", {
 
 test_that("independent-proportion interfaces accept counts and tables", {
   tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
-  methods <- c("newcombe", "wald", "miettinen-nurminen", "agresti-caffo")
+  methods <- c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo")
   result <- prop.2s.ci(c(38, 267), c(100, 984), method = methods)
   expect_equal(result, prop.2s.ci(tab, method = methods))
   expect_equal(unname(result$estimate), 38 / 100 - 267 / 984)
@@ -115,28 +115,47 @@ test_that("Newcombe combines the separate Wilson distances", {
   }
 })
 
-test_that("Miettinen-Nurminen limits satisfy the constrained score equation", {
+test_that("Miettinen-Nurminen and Mee limits satisfy their score equations", {
   x <- c(12, 4)
   n <- c(40, 30)
-  result <- prop.2s.ci(x, n, method = "miettinen-nurminen")
-  for (delta in as.numeric(result$conf.int)) {
-    loglik <- function(q) {
-      dbinom(x[1], n[1], q + delta, log = TRUE) +
-        dbinom(x[2], n[2], q, log = TRUE)
+  for (method in c("miettinen-nurminen", "mee")) {
+    result <- prop.2s.ci(x, n, method = method)
+    for (delta in as.numeric(result$conf.int)) {
+      loglik <- function(q) {
+        dbinom(x[1], n[1], q + delta, log = TRUE) +
+          dbinom(x[2], n[2], q, log = TRUE)
+      }
+      fit <- optimize(loglik, c(max(0, -delta), min(1, 1 - delta)),
+                      maximum = TRUE, tol = 1e-12)
+      p <- c(fit$maximum + delta, fit$maximum)
+      factor <- if (method == "miettinen-nurminen") sum(n) / (sum(n) - 1) else 1
+      variance <- sum(p * (1 - p) / n) * factor
+      statistic <- (x[1] / n[1] - x[2] / n[2] - delta)^2 / variance
+      expect_equal(statistic, qchisq(0.95, 1), tolerance = 1e-6)
     }
-    fit <- optimize(loglik, c(max(0, -delta), min(1, 1 - delta)),
-                    maximum = TRUE, tol = 1e-12)
-    p <- c(fit$maximum + delta, fit$maximum)
-    variance <- sum(p * (1 - p) / n) * sum(n) / (sum(n) - 1)
-    statistic <- (x[1] / n[1] - x[2] / n[2] - delta)^2 / variance
-    expect_equal(statistic, qchisq(0.95, 1), tolerance = 1e-6)
   }
+})
+
+test_that("Mee and Miettinen-Nurminen have distinct zero-event limits", {
+  n <- c(3, 5)
+  critical <- qchisq(0.95, 1)
+  for (method in c("mee", "miettinen-nurminen")) {
+    factor <- if (method == "miettinen-nurminen") sum(n) / (sum(n) - 1) else 1
+    expected <- c(-critical * factor / (n[2] + critical * factor),
+                   critical * factor / (n[1] + critical * factor))
+    result <- prop.2s.ci(c(0, 0), n, method = method)
+    expect_equal(as.numeric(result$conf.int), expected, tolerance = 1e-8)
+  }
+  result <- prop.2s.ci(c(12, 4), c(40, 30),
+                       method = c("miettinen-nurminen", "mee"))
+  expect_lt(result$conf.int[1, "lower"], result$conf.int[2, "lower"])
+  expect_gt(result$conf.int[1, "upper"], result$conf.int[2, "upper"])
 })
 
 test_that("independent intervals reverse sign and give one-sided bounds", {
   for (x in list(c(0, 0), c(0, 5), c(3, 0), c(3, 5), c(2, 4))) {
     n <- c(3, 5)
-    for (method in c("newcombe", "wald", "miettinen-nurminen",
+    for (method in c("newcombe", "wald", "miettinen-nurminen", "mee",
                      "agresti-caffo")) {
       result <- prop.2s.ci(x, n, conf.level = 0.9, method = method)
       reverse <- prop.2s.ci(rev(x), rev(n), conf.level = 0.9, method = method)
@@ -168,5 +187,7 @@ test_that("binomial interval functions reject invalid and inapplicable inputs", 
   expect_error(prop.2s.ci(c(1, 2), c(0, 3)), "integer counts")
   expect_error(prop.2s.ci(matrix(1:4, 2), n = c(3, 7)), "Omit")
   expect_error(prop.2s.ci(c(1, 2), c(3, 3), method = "agresti-caffo",
+                         correct = TRUE), "applies only")
+  expect_error(prop.2s.ci(c(1, 2), c(3, 3), method = "mee",
                          correct = TRUE), "applies only")
 })
