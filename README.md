@@ -23,6 +23,9 @@ remotes::install_github("ibist/ibist-R", upgrade = "never")
 The [Python sister package](https://github.com/ibist/ibist-py) follows the
 [R and Python development principles](CROSS_LANGUAGE_DEVELOPMENT.md),
 including shared statistical specifications, data preparation, and validation.
+After regenerating R datasets, run `Rscript data-raw/export-python.R` from
+this repository to refresh the portable Python data and metadata. The exporter
+reads the prepared R objects; it requires jsonlite during development.
 
 ## License
 

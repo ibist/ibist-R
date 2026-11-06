@@ -6,8 +6,9 @@ This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
 The Python repository is [ibist-py](https://github.com/ibist/ibist-py).
 Its initial package structure uses `ibist` for both the distribution and import
-names; methods and datasets remain to be implemented. These names
-describe the development package and do not imply a reserved PyPI name.
+names. The first implementation provides dataset loading and `or_2x2_ci()`.
+These names describe the development package and do not imply a reserved
+PyPI name.
 
 ## Shared statistical specification
 
@@ -38,6 +39,11 @@ merely to implement table-based inference. Follow the same statistical
 definitions across languages even when underlying libraries have different
 defaults.
 
+pandas is a regular Python dependency: a standard installation must support
+the teaching examples and DataFrame output. Keep development tools in an
+optional dependency group, without requiring users to select an extra merely
+to run the examples.
+
 Return structured Python results with accessible estimates, statistics,
 p-values, confidence limits, confidence level, and method information as
 applicable. Provide readable summaries and tabular results for requests with
@@ -56,8 +62,20 @@ R to load the prepared datasets.
 
 Portable exports must preserve or accompany metadata for variable labels,
 units, category levels and order, reference categories, and missing values.
-CSV alone is insufficient to preserve all of this information. Select the
-export format and metadata schema when implementing the first dataset.
+CSV alone is insufficient to preserve all of this information. Record the
+export format and metadata schema whenever they change.
+
+The initial implementation uses `data-raw/export-python.R` to export the
+existing prepared R datasets as gzip-compressed JSON column arrays and JSON
+metadata. Missing values are null; metadata retain factor order, numeric value
+labels, descriptions, units, and source-file hashes. Regenerate R objects with
+their existing preparation scripts before exporting changed data. The exporter
+checks an exact value round-trip and records raw inputs missing from the
+checkout; export alone does not claim those inputs were reprocessed. See
+[the Python dataset documentation](https://github.com/ibist/ibist-py/blob/main/docs/datasets.md)
+for the schema. R comparison cases are generated explicitly with
+`data-raw/export-python-reference.R` and stored in the Python test suite;
+they supplement independent numerical checks.
 
 Distribute generated copies with each package, but edit the authoritative
 source and regenerate both outputs when data change. Record source and
@@ -123,5 +141,4 @@ and import names to keep installation and usage consistent. A PyPI check on
 that date found no project named `ibist`; the name is not reserved.
 
 Open implementation decisions include Python package-name availability,
-portable data and metadata formats, reference-case storage, release
-coordination, and the eventual location of shared source material.
+release coordination, and the eventual location of shared source material.
