@@ -19,10 +19,13 @@ export(or.paired.ci)
 export(ordinal.assoc)
 export(power.p1s.test)
 export(power.p2s.test)
+export(prop.1s.ci)
+export(prop.2s.ci)
 export(prop.paired.ci)
 export(rate.1s.ci)
 export(rate.2s.ci)
 export(rate.test)
+export(rr.2x2.ci)
 importFrom(Rcpp,evalCpp)
 importFrom(stats,
   aggregate,

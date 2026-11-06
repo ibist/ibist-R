@@ -33,6 +33,17 @@ Python functions and arguments, for example `or_2x2_ci()`,
 naming conventions; individual signatures still require design review.
 Preserve the current R interface until its separately planned naming migration.
 
+On 2026-11-06, the authors agreed to use `prop.1s.ci()`, `prop.2s.ci()`,
+and `rr.2x2.ci()` in R, with `prop_1s_ci()`, `prop_2s_ci()`, and
+`rr_2x2_ci()` as their Python counterparts. The new R proportion interfaces
+follow base R's `x` and `n` convention. Both implementations should use the
+same descriptive method names, including `newcombe`, `miettinen-nurminen`,
+`agresti-caffo`, `katz`, and `koopman`, with continuity correction and mid-p
+modification specified separately where applicable. See
+[the binomial interval specification](BINOMIAL_INTERVALS.md) for defaults,
+result fields, table orientation, and validation requirements. These interval
+families are being implemented in R first; Python parity remains pending.
+
 Use NumPy and SciPy for numerical building blocks. Add dependencies when the
 functionality needs them; do not require a statistical modeling framework
 merely to implement table-based inference. Follow the same statistical
