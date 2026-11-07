@@ -47,10 +47,9 @@ families are being implemented in R first; Python parity remains pending.
 ### Contingency-table independence tests
 
 On 2026-11-06, the authors chose `indep.test()` in R and `indep_test()` in
-Python to provide a common interface to independence tests. The first R
-implementation supports `method = "pearson"` (default), `method = "lr"`,
-and `method = "fisher"`. Python parity remains pending. The asymptotic
-methods prepare replacements for the book's use of DescTools for the
+Python to provide a common interface to independence tests. Both
+implementations support `pearson` (default), `lr`, and `fisher` methods.
+The asymptotic methods prepare replacements for the book's use of DescTools for the
 likelihood-ratio test and expected cell counts;
 manuscript migration is deferred until after the final exam.
 
@@ -112,11 +111,11 @@ an asymptotic small-count warning. The null hypothesis is independence
 - Preserve Fisher's own inference fields. There is no chi-squared statistic,
   degrees of freedom, or Pearson residual output for this method. Return
   observed and expected tables for all three methods, preserving labels.
-- The future Python Fisher implementation must support general RxC tables,
-  not just 2 x 2 tables, independently of SciPy's interface. Use a native
-  exact algorithm or fixed-margin Monte Carlo implementation as needed;
-  SciPy is not required for the Fisher calculation. Two-sided exact p-values
-  sum probabilities of tables no more likely than the observed table under
+- The Python Fisher implementation supports general RxC tables, not just
+  2 x 2 tables, independently of SciPy's Fisher-test interface. It uses native
+  fixed-margin enumeration for exact RxC tests, with an explicit search-node
+  limit, and SciPy's Patefield sampler for Monte Carlo tests. Two-sided exact
+  p-values sum probabilities of tables no more likely than the observed table under
   the fixed-margin null, rather than ordering tables by Pearson X-squared.
   R's `fisher.test()` is a cross-language reference, supplemented by direct
   hypergeometric and small RxC enumeration checks. Record probability tie
@@ -137,12 +136,23 @@ directly, not by subtracting the lower-tail probability from one. DescTools
 is not a runtime or test dependency; retain independent formula and Poisson
 model checks in the test suite.
 
+Python uses SciPy's conditional odds-ratio estimate and exact limits for
+binary Fisher tests. These satisfy conditional mean and inclusive tail
+checks at absolute tolerance `1e-10`; R's default `fisher.test()` root finding
+can give differences of about `1.2e-4` relatively for estimates and `5e-4` for
+limits in the reference cases. Keep the statistical definitions aligned,
+rather than reproducing R's coarse numerical roots. Native exact RxC Fisher
+enumeration is less efficient than R's network algorithm; its `max_tables`
+limit raises an error instead of substituting a different method. Python
+simulation options are `n_resamples` and `random_state`. General-table tests
+use the same relative probability tie tolerance `1e-7` as the binary tests.
+
 ### Nominal association measures
 
 The R interface is `nominal.assoc(x, measure = c("phi", "contingency",
-"cramer-v"))`; the planned Python counterpart is `nominal_assoc()` with the
+"cramer-v"))`; the Python counterpart is `nominal_assoc()` with the
 same measure names. All three are selected by default; preserve requested
-order and remove duplicates. Python parity remains pending. Book changes
+order and remove duplicates. Both are implemented. Book changes
 remain deferred until after the final exam.
 
 Input requirements and expected counts match `indep.test()`, including
@@ -185,10 +195,9 @@ alongside independent formula checks.
 
 `or.homogeneity.test(x, method = c("zelen", "breslow-day", "woolf"),
 correct = FALSE)` selects one method per call and preserves Zelen's exact
-test as the default. The planned Python counterpart is
-`or_homogeneity_test()`, with the same method names and correction policy.
-Python parity remains pending; book changes remain deferred until after
-the final exam.
+test as the default. The Python counterpart is `or_homogeneity_test()`,
+with the same method names and correction policy. Both are implemented;
+book changes remain deferred until after the final exam.
 
 All methods accept a list of 2 x 2 count tables or a 2 x 2 x K count array.
 The two asymptotic methods require at least two strata and positive row
