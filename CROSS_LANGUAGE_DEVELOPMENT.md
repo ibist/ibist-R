@@ -55,6 +55,19 @@ Python uses zero-based input metadata and a DataFrame MultiIndex for vector
 intervals, while scalar interval output retains its existing layout. See the
 shared specification for numerical tolerances and deliberate differences.
 
+### Function documentation
+
+Keep Python function help comparable to the corresponding R help page in
+statistical content and detail. Follow PEP 257 and numpydoc, with Parameters,
+Returns, Raises, See Also, Notes, References, and Examples sections for public
+statistical functions; include Warns where relevant.
+Document every argument, effective default, table orientation, method,
+boundary case, and relevant numerical limitation. State intentional interface
+or result-field differences explicitly. Examples must run against the public
+API. Dataset helpers use the applicable sections without adding irrelevant
+statistical references. Reuse verified references from the shared method
+specification and R help; verify new sources before citing them.
+
 ### Result structures
 
 Use R's statistical result structures as the design basis for the Python
