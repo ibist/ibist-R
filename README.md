@@ -9,6 +9,12 @@ by Elizabeth D. Schifano and Jun Yan
 The package **ibist** provides functions, datasets, and demos
 used in the book.
 
+`indep.test(x, method = "pearson")` wraps `stats::chisq.test()` for
+contingency-table independence, with continuity correction off by default.
+Use `method = "lr"` for the likelihood-ratio G-squared test. Both return
+observed and expected cell counts alongside the test results. Set
+`correct = TRUE` for Yates' correction in Pearson's test of a 2 x 2 table.
+
 ## Development
 
 The latest version of the package is under development at

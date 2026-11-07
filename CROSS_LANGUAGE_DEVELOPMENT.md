@@ -44,6 +44,62 @@ modification specified separately where applicable. See
 result fields, table orientation, and validation requirements. These interval
 families are being implemented in R first; Python parity remains pending.
 
+### Contingency-table independence tests
+
+On 2026-11-06, the authors chose `indep.test()` in R and `indep_test()` in
+Python to provide a common interface to independence tests. The first R
+implementation supports `method = "pearson"` (default) and `method = "lr"`;
+Python parity remains pending. This prepares replacements for the book's
+use of DescTools for the likelihood-ratio test and expected cell counts;
+manuscript migration is deferred until after the final exam.
+
+- Input is a two-dimensional table of finite, non-negative integer counts,
+  with at least two rows and two columns, a finite total, and positive row
+  and column totals. Reject empty margins rather than dropping them.
+- Both methods test independence of row and column variables. Expected
+  counts are `E[i,j] = row_total[i] * column_total[j] / total`. Rows and
+  columns may be exchanged without changing the test.
+- Pearson uses `sum((observed - expected)^2 / expected)`. The likelihood
+  ratio uses `2 * sum(observed * log(observed / expected))`, treating
+  zero observed counts as zero contributions. Both use the upper tail of
+  a chi-squared distribution with `(nrow - 1) * (ncol - 1)` degrees of freedom.
+- `correct = FALSE` is the common default, unlike R's `chisq.test()`.
+  `correct = TRUE` is supported only for Pearson's test of a 2 x 2 table;
+  other combinations are errors. Use R's capped Yates correction:
+  subtract `min(0.5, min(abs(observed - expected)))` from each absolute
+  deviation before squaring. Warn when any expected count is below 5.
+- The R Pearson method wraps `stats::chisq.test()`; its expected counts and
+  Pearson residual diagnostics are also reused by the likelihood-ratio
+  method, whose statistic is computed directly. Python may use SciPy where
+  its behavior matches this specification; custom calculations are needed
+  for any differences, including the cap on the Yates correction.
+- Return the statistic, degrees of freedom, asymptotic p-value, test
+  description, observed and expected counts. R returns an `htest` with
+  `statistic`, `parameter`, `p.value`, `method`, `data.name`, `observed`,
+  `expected`, `residuals`, and `stdres`. The residual fields are Pearson
+  diagnostics for either method, not deviance residuals. Preserve dimension
+  labels. Python should expose corresponding native fields, including
+  `statistic`, `df`, `p_value`, `method`, `observed`, and `expected`.
+- Validate against direct calculations and an independent Poisson
+  log-linear model as well as R's Pearson implementation. Include zero
+  cells, independent tables, sparse-count warnings, transposition and
+  permutation invariance, invalid inputs, and the capped Yates case.
+
+Fisher's exact test, simulated p-values, goodness-of-fit tests, and
+likelihood-ratio continuity corrections are outside this first interface.
+
+Direct development comparisons with DescTools 0.99.60 covered both book
+G-test examples, a zero-cell table, and 100 seeded random tables of sizes
+2 x 2 through 5 x 5. Statistics and expected counts agreed within `1e-10`.
+For the tumor table (rows `109,68,14; 72,79,37; 9,42,139`), DescTools returned
+a zero p-value; the upper-tail calculation in `indep.test()` retains the
+probability of approximately `5.73e-53`. Compute survival probabilities
+directly, not by subtracting the lower-tail probability from one. DescTools
+is not a runtime or test dependency; retain independent formula and Poisson
+model checks in the test suite.
+
+### Numerical foundations and results
+
 Use NumPy and SciPy for numerical building blocks. Add dependencies when the
 functionality needs them; do not require a statistical modeling framework
 merely to implement table-based inference. Follow the same statistical
