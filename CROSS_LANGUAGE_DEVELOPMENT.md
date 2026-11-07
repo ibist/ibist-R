@@ -98,6 +98,50 @@ directly, not by subtracting the lower-tail probability from one. DescTools
 is not a runtime or test dependency; retain independent formula and Poisson
 model checks in the test suite.
 
+### Nominal association measures
+
+The R interface is `nominal.assoc(x, measure = c("phi", "contingency",
+"cramer-v"))`; the planned Python counterpart is `nominal_assoc()` with the
+same measure names. All three are selected by default; preserve requested
+order and remove duplicates. Python parity remains pending. Book changes
+remain deferred until after the final exam.
+
+Input requirements and expected counts match `indep.test()`, including
+rejection of empty margins. Let `X2` be the uncorrected Pearson statistic,
+`n` the total count, and `d = min(nrow, ncol)`. Return:
+
+- `phi = sqrt(X2 / n)`, non-negative even for 2 x 2 tables, with maximum
+  `sqrt(d - 1)`; do not substitute a signed binary correlation.
+- `contingency = sqrt(X2 / (X2 + n))`, without Sakoda adjustment, with
+  maximum `sqrt((d - 1) / d)`.
+- `cramer-v = sqrt(X2 / (n * (d - 1)))`, without bias correction, between
+  zero and one. Phi and Cramer's V agree when `d = 2`.
+
+These definitions match the default point estimates of DescTools `Phi()`,
+`ContCoef()`, and `CramerV()`. Do not apply Yates correction or use G-squared.
+These descriptive measures ignore category ordering and are invariant to
+transposition, category permutations, and uniform replication of counts.
+Suppress sparse-count approximation warnings because no p-value is returned.
+Confidence intervals, bias corrections, and adjusted contingency coefficients
+are outside this first implementation.
+
+R returns an `ibist_nominal_assoc` object with `estimate` (a named vector),
+`measure`, `statistic` (uncorrected Pearson X-squared), `n`, `observed`,
+`expected`, and `data.name`. Its print method rounds only for display. The
+Python result should expose corresponding native fields. Validate against
+independent 2 x 2 cross-product formulas, exact independence and perfect
+association cases, and direct DescTools comparisons, including the book's
+3 x 3 tumor table, rectangular tables, sparse tables, and Phi above one.
+DescTools remains a development comparison only, not a package dependency.
+
+Direct comparisons against DescTools 0.99.60 matched all three estimates
+exactly on 205 tables: the book's tumor table, positive and negative binary
+association, perfect 3 x 3 association, a sparse zero-cell table, and 200
+seeded random tables with dimensions from 2 through 6. The tumor estimates
+are `phi = 0.63761827201204579`, `contingency = 0.53762824441746093`, and
+`cramer-v = 0.45086420394816618`; these are retained as regression references
+alongside independent formula checks.
+
 ### Numerical foundations and results
 
 Use NumPy and SciPy for numerical building blocks. Add dependencies when the

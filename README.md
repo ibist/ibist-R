@@ -15,6 +15,11 @@ Use `method = "lr"` for the likelihood-ratio G-squared test. Both return
 observed and expected cell counts alongside the test results. Set
 `correct = TRUE` for Yates' correction in Pearson's test of a 2 x 2 table.
 
+`nominal.assoc(x)` returns Phi, Pearson's contingency coefficient, and
+Cramer's V as descriptive point estimates. Use `measure = "cramer-v"` to
+select one measure. Phi is non-negative for all table sizes and can exceed
+one for larger tables; Cramer's V is normalized between zero and one.
+
 ## Development
 
 The latest version of the package is under development at
