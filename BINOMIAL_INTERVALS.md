@@ -2,8 +2,9 @@
 
 Agreed naming and interface principles: 2026-11-06. R is implemented first.
 The one-proportion family and the six approximate independent-proportion
-difference methods are now implemented in both languages. Chan--Zhang exact
-difference intervals and risk-ratio intervals remain pending in Python.
+difference methods and the Katz/Koopman risk-ratio intervals are implemented
+in both languages. Chan--Zhang exact difference intervals are also
+implemented in Python, with the same global nuisance and outer searches.
 
 ## Interfaces and results
 
@@ -14,9 +15,12 @@ difference intervals and risk-ratio intervals remain pending in Python.
 | Risk ratio | `rr.2x2.ci(x, ...)` | `rr_2x2_ci(x, ...)` | `koopman` |
 
 All default to 95% two-sided intervals. Explicit method vectors request
-several methods. One-sided alternatives `greater` and `less` request a lower
-or upper bound, respectively, with the other limit at the parameter-space
-boundary. Defaults are `correct = FALSE` and `midp = FALSE` where supported.
+several methods. `side="lower"` and `side="upper"` request one-sided
+bounds, with the other limit at the parameter-space boundary. Omitted
+`side` (`NULL` in R, `None` in Python) selects `"two.sided"`. The legacy
+`alternative` argument remains a compatibility alias; conflicting arguments
+are rejected. See [the common CI interface](CI_INTERFACE.md). Defaults are
+`correct = FALSE` and `midp = FALSE` where supported.
 Python argument names will use snake_case.
 
 One-sample counts may be vectors; a scalar trial count is recycled, otherwise
@@ -29,7 +33,7 @@ is row 1 minus row 2; the ratio is row 1 divided by row 2.
 
 R results use the existing `ibist_ci` class. `estimate` is the named observed
 estimate, separate from the `conf.int` matrix, which has `lower` and `upper`
-columns. Other fields include `conf.level`, `method`, and `alternative`.
+columns. Other fields include `conf.level`, `method`, and `side`.
 One-sample vector results have one row per input and method, ordered by input
 and then method; `inputs` explicitly identifies the corresponding counts and
 trial counts. Difference and ratio results include `sample.proportions`.
@@ -52,8 +56,8 @@ indices and `x` and `n` columns. These are distinct from the per-interval
 metadata of vector one-proportion calls. Count vectors require two explicit
 trial counts; a scalar `n` is not recycled. Table rows are independent
 samples and columns successes/failures; an all-zero event or failure column
-is valid. Newcombe remains the default, and Chan--Zhang is rejected explicitly
-until its Python implementation is available.
+is valid. Newcombe remains the default. Chan--Zhang is available with the
+same `nuisance_tol=1e-10` default and one-million-table enumeration limit.
 
 Python uses logit-scaled nuisance probabilities and distance to the observed
 difference for Mee and Miettinen--Nurminen inversion. Success and failure
@@ -228,6 +232,14 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
 - Base R checks cover Wilson and Clopper–Pearson intervals and Wald
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.
+- Python risk-ratio tests include the published SAS Katz limits, independent
+  constrained likelihood fits at Koopman endpoints, reciprocal symmetry,
+  one-sided bounds, zero counts, and trillion-trial complete-success limits.
+  The 336 cases in `ibist-py/tests/reference/rr_2x2_r.json` supplement those
+  checks with relative endpoint tolerance `3e-8` and absolute tolerance
+  `2e-8`. Regenerate them with
+  `data-raw/export-python-risk-rate-reference.R`; the exporter also writes
+  basic Poisson-rate references and records source hashes and the R revision.
 - Independent likelihood optimization verifies the defining score equations
   at Miettinen–Nurminen, Mee, and Koopman endpoints. Closed-form zero-event
   cases distinguish the Mee and Miettinen–Nurminen variance factors.

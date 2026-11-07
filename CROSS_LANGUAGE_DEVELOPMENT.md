@@ -1,6 +1,6 @@
 # R and Python development principles
 
-Agreed: 2026-11-06. Last updated: 2026-11-06.
+Agreed: 2026-11-06. Last updated: 2026-11-07.
 
 This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
@@ -45,12 +45,97 @@ result fields, table orientation, and validation requirements. These interval
 families were implemented in R first. `prop_1s_ci()` is now implemented in
 Python, including vector inputs and all one-proportion methods.
 `prop_2s_ci()` now implements the six approximate independent-difference
-methods with scalar estimates and separate group metadata. Chan--Zhang exact
-intervals and risk-ratio intervals remain pending in Python. Basic rate
-functions follow risk-ratio intervals, ahead of the Chan--Zhang port.
+methods with scalar estimates and separate group metadata. `rr_2x2_ci()`
+now provides Katz and Koopman intervals. Basic one- and two-sample Poisson
+rate intervals and normal-approximation tests are also implemented in Python.
+Chan--Zhang exact independent-difference intervals are also implemented.
+Paired proportion, paired odds-ratio, and common odds-ratio intervals now
+have Python counterparts with the same method names and CI-side interface.
 Python uses zero-based input metadata and a DataFrame MultiIndex for vector
 intervals, while scalar interval output retains its existing layout. See the
 shared specification for numerical tolerances and deliberate differences.
+
+### Result structures
+
+Use R's statistical result structures as the design basis for the Python
+interfaces. `CIResult` corresponds to R's `ibist_ci`, and `TestResult` to
+`htest`. These are ibist's package-wide conventions, with consistent field
+semantics and documented method-specific information.
+
+Translate dotted R field names to Python names, such as `conf.int` to
+`conf_int`, `conf.level` to `conf_level`, `p.value` to `p_value`, and
+`null.value` to `null_value`. Preserve the distinctions between parameter
+estimates, sample metadata, test statistics, null hypotheses, and intervals.
+State when an interval and a hypothesis test use different constructions.
+
+Return structured results at full numerical precision. Summaries, interval
+arrays, and DataFrame exports are views of those results. Keep method names,
+defaults, and supported alternatives consistent across functions where their
+statistical meaning is the same, and document intentional differences from R.
+Evaluate other Python packages' conventions by statistical clarity and
+consistency with this design.
+
+### Risk ratios and basic Poisson rates
+
+Risk-ratio methods follow `BINOMIAL_INTERVALS.md`: `rr_2x2_ci()` returns a
+scalar estimate and copied group counts/proportions, supports one-sided
+bounds, and preserves method order and repetitions. Katz requires positive
+event counts; Koopman permits zero events, with an undefined estimate and
+`[0, Inf]` when both counts are zero. Python uses complementary constrained
+probabilities and failure counts to retain precision near complete success.
+
+The basic rate interfaces are `rate_1s_ci()`, `rate_2s_ci()`, and
+`rate_test()`, corresponding to R's dotted names. The one-rate default is
+Garwood exact; other methods are score, Wilson--Hilferty (`wh`), Wald, and
+log. `correct=True` is the one-rate default, matching R, and affects score,
+WH, and Wald only. The two-rate default is log-Wald, with conditional Wilson
+score and Clopper--Pearson exact alternatives. At least one event is needed
+for conditional two-rate intervals; log-Wald requires both counts positive.
+Counts and their total must not exceed `2**53-1`; exposures are finite and
+positive and must match the count vector length, without scalar recycling.
+
+Rate intervals use a scalar `CIResult.estimate`, with `samples` containing
+`x` and `exposure`, and copied `sample_rates` arrays. This deliberately
+separates the rate-ratio target from the group rates; R's two-rate estimate
+vector contains all three. Scalar DataFrame output retains its method index,
+and sample metadata attributes are immutable tuples. Method repetitions and
+order are retained. Summaries round for presentation only.
+
+All CI entry points use `side`: `"two.sided"` (default), `"lower"`, or
+`"upper"`. Both packages use an omitted value (`NULL`/`None`) to select the
+default while detecting conflicts with the compatibility alias `alternative`.
+Every rate-CI method now honors the requested side in R and Python. Tests
+retain the hypothesis argument `alternative`. The complete contract and
+translation table are in [CI_INTERFACE.md](CI_INTERFACE.md).
+
+`rate_test()` preserves R's normal approximation and correction rules.
+One sample tests a positive null unit rate `r` with a signed Z statistic,
+uncapped directional half-count correction, and score interval. Two samples
+test equal rates with the conditional binomial Pearson statistic and capped
+Yates correction; their rate-ratio interval is log-Wald, unaffected by
+correction. Its interval and test are not exact duals. Both counts must be
+positive for that interval. A two-sample small-expected-count warning follows
+R. The existing `TestResult` holds the scalar estimate, null, confidence
+limits, and native test fields; `estimate_name` labels rates without calling
+them conditional odds ratios. `samples` and `sample_rates` return copies.
+
+One deliberate boundary difference is recorded in
+`misc/rate-interval-review.md`: Python restricts negative WH limits to zero,
+while R's corrected WH lower limit at zero events can be negative. The
+midpoint correction itself remains subject to author review. The new R
+`side` argument preserves the existing two-sided WH formula; book sources
+remain unchanged. Clipping is not a coverage proof.
+
+Independent validation includes the published SAS Katz example, constrained
+likelihood fits for Koopman endpoints, closed-form boundary limits, Poisson
+tail equations, score equations, conditional binomial bounds, exposure
+scaling, reversal, and correction rules. The exporter
+`data-raw/export-python-risk-rate-reference.R` records R source hashes and
+revision and writes 336 risk-ratio and 123 rate cases. These supplement
+independent tests and preserve raw R limits, including the WH finding.
+Python regression tests account explicitly for clipping; risk-ratio limits
+allow `3e-8` relative or `2e-8` absolute difference, and rate limits use
+`2e-10` relative and absolute tolerance.
 
 ### Contingency-table independence tests
 
@@ -326,11 +411,57 @@ latest output of either implementation when a comparison fails.
 
 ## Computational code
 
-Most existing statistical code is in R and requires translation. The Wang
-paired-interval implementation uses Rcpp. Sharing its C++ computational core
-would require separating that core from R-specific types and error handling,
-then providing language-specific bindings. Make this change when its benefit
-justifies the additional build and maintenance work.
+Keep one authoritative, language-neutral implementation of shared native
+algorithms. Language bindings handle validation, object conversion, errors,
+and missing-value representations; the core uses standard C++ types and
+has no Rcpp or Python dependencies.
+
+For Wang intervals, the authoritative core is `src/wang_core.h` in `ibist-R`.
+`src/wang_paired_ci.cpp` is the Rcpp binding. The exporter
+`data-raw/export-python-wang-core.R` copies the header byte-for-byte into
+`ibist-py/src/ibist/_native/wang_core.h` and records the source path, MD5 hash,
+and license in `wang_core.json`. Edit the R source, then regenerate the Python
+copy; never maintain separate handwritten algorithms. Both repositories
+require LF line endings for this header to preserve byte identity on Windows.
+
+The CPython binding is `_native/wang_module.cpp`; setuptools compiles it
+into `ibist._wang_native`. Source distributions include the header and
+binding; binary wheels include the compiled extension. Neither package
+requires the other at installation or runtime. Source installation requires
+a C++ compiler; wheels are specific to their Python version and platform.
+The current publishing workflows build a Linux Python 3.12 wheel and a source
+distribution; broader binary-wheel publishing is separate release work.
+
+Run `Rscript --vanilla data-raw/export-python-wang-core.R --check` from the R
+root, or `python tools/check_shared_core.py --r-source ../ibist-R` from the
+Python root. Python CI checks out the authoritative R repository, compares
+both copies and the manifest hash, and tests builds on Linux, macOS, and
+Windows. Land the R core changes before the dependent Python CI changes.
+The manifest hash identifies the exact core version shipped in each package.
+
+Validate the shared core against independently calculated cases and finite
+sample-space coverage, then validate each binding's interface. Cross-language
+agreement alone is not an independent algorithm check. The refactored Wang
+core also agrees bit-for-bit with the original Rcpp implementation for all
+collapsed tables at n=0 through 6 and three confidence levels. Python's
+Wang nuisance grids and precision settings preserve R's construction; finite
+grids approximate the supremum and do not certify exact coverage.
+
+Paired score limits use accurate constrained likelihood fits in Python;
+R's existing optimizer is coarser, so comparison tolerance is `3e-4` absolute
+for this method. Other remaining-CI references use `2e-7` relative or `2e-8`
+absolute tolerance; Wang endpoints match exactly at the recorded precision.
+The exporter `data-raw/export-python-remaining-ci-reference.R` supplies 545
+cases covering all newly ported CI families. Independent checks include
+conditional hypergeometric tail equations and conditional MLEs, multinomial
+likelihood fits, small-space exact coverage, boundary closed forms, and a
+Chan--Zhang disconnected acceptance region.
+
+Porting exposed R edge cases: zero paired sample sizes now raise a clear
+error; completely discordant samples use the analytic score variance at
+boundary fits; low-confidence uncorrected Wilson bounds snap to exact
+probability boundaries before odds transformations. Existing two-sided book
+calls remain valid. Book sources are unchanged.
 
 ## Initial implementation sequence
 

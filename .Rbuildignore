@@ -13,6 +13,7 @@
 ^README_cache$
 ^CROSS_LANGUAGE_DEVELOPMENT\.md$
 ^BINOMIAL_INTERVALS\.md$
+^CI_INTERFACE\.md$
 ^TAGS$
 ^TODO\.org$
 ^\#
@@ -38,3 +39,4 @@ data-raw/
 ^ibist-book(/|$)
 ^priority\.md$
 ^solution-manual$
+^\.gitattributes$
