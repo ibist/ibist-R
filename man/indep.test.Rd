@@ -67,6 +67,12 @@ indep.test(screening, correct = TRUE)
 indep.test(screening)$expected
 
 }
+\references{
+SAS Institute Inc. (2016). \emph{SAS/STAT 14.2 User's Guide}.
+The FREQ Procedure, pp. 2759--2763: Chi-Square Tests and Statistics.
+Cary, NC: SAS Institute Inc.
+\url{https://support.sas.com/documentation/onlinedoc/stat/142/freq.pdf}
+}
 \seealso{
 \code{\link[stats]{chisq.test}},
   \code{\link[stats]{fisher.test}}

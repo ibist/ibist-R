@@ -49,6 +49,9 @@ one for larger tables. The contingency coefficient's maximum is
 Phi when \eqn{d=2}. These are the unadjusted definitions used by
 \code{DescTools::Phi()}, \code{DescTools::ContCoef()}, and
 \code{DescTools::CramerV()} with their default arguments.
+The formulas are also given in SAS Institute Inc. (2016, p. 2764),
+except that SAS retains the sign of Phi and V for 2 x 2 tables;
+this function reports their absolute values to match DescTools.
 
 The Pearson statistic and expected counts are obtained from
 \code{\link{indep.test}} with no continuity correction. Empty margins
@@ -66,6 +69,12 @@ nominal.assoc(tumor)
 nominal.assoc(tumor, measure = "cramer-v")
 nominal.assoc(tumor)$estimate
 
+}
+\references{
+SAS Institute Inc. (2016). \emph{SAS/STAT 14.2 User's Guide}.
+The FREQ Procedure, p. 2764: Phi Coefficient, Contingency Coefficient,
+and Cramer's V. Cary, NC: SAS Institute Inc.
+\url{https://support.sas.com/documentation/onlinedoc/stat/142/freq.pdf}
 }
 \seealso{
 \code{\link{ordinal.assoc}}, \code{\link{indep.test}}

@@ -124,6 +124,23 @@ or.homogeneity.test(tabs, method = "woolf")
 
 }
 \references{
+SAS Institute Inc. (2016). \emph{SAS/STAT 14.2 User's Guide}.
+The FREQ Procedure, pp. 2819--2820: Breslow-Day Test for Homogeneity
+of the Odds Ratios. Cary, NC: SAS Institute Inc.
+\url{https://support.sas.com/documentation/onlinedoc/stat/142/freq.pdf}
+
+Breslow, N. E., and Day, N. E. (1980). \emph{Statistical Methods in Cancer
+Research. Volume I: The Analysis of Case-Control Studies}.
+IARC Scientific Publications No. 32. International Agency for Research
+on Cancer, Lyon.
+
+Tarone, R. E. (1985). On heterogeneity tests based on efficient scores.
+\emph{Biometrika}, 72, 91--95.
+
+Woolf, B. (1955). On estimating the relation between blood group and
+disease. \emph{Annals of Human Genetics}, 19(4), 251--253.
+\doi{10.1111/j.1469-1809.1955.tb01348.x}
+
 Jung, S. H., Biggerstaff, B. J., and Kim, C. (2014). A class of exact
 tests for a common odds ratio in stratified 2 x 2 tables.
 \emph{Biometrical Journal}, 56(1), 97--109.
