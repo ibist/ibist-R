@@ -42,7 +42,12 @@ same descriptive method names, including `newcombe`, `miettinen-nurminen`,
 modification specified separately where applicable. See
 [the binomial interval specification](BINOMIAL_INTERVALS.md) for defaults,
 result fields, table orientation, and validation requirements. These interval
-families are being implemented in R first; Python parity remains pending.
+families were implemented in R first. `prop_1s_ci()` is now implemented in
+Python, including vector inputs and all one-proportion methods. The
+independent-difference and risk-ratio families remain pending in Python.
+Python uses zero-based input metadata and a DataFrame MultiIndex for vector
+intervals, while scalar interval output retains its existing layout. See the
+shared specification for numerical tolerances and deliberate differences.
 
 ### Contingency-table independence tests
 

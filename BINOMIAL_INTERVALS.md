@@ -1,7 +1,8 @@
 # Binomial interval specification
 
-Agreed naming and interface principles: 2026-11-06. R is implemented first;
-the corresponding Python functions remain to be implemented.
+Agreed naming and interface principles: 2026-11-06. R is implemented first.
+The one-proportion family is now implemented in both languages; independent
+proportion differences and risk-ratio intervals remain pending in Python.
 
 ## Interfaces and results
 
@@ -31,6 +32,24 @@ columns. Other fields include `conf.level`, `method`, and `alternative`.
 One-sample vector results have one row per input and method, ordered by input
 and then method; `inputs` explicitly identifies the corresponding counts and
 trial counts. Difference and ratio results include `sample.proportions`.
+
+Python uses the existing `CIResult` class. One-proportion scalar estimates
+remain floats; vector estimates are NumPy arrays. Its `inputs` property
+returns a fresh DataFrame with one row per interval, recording zero-based
+input indices, `x`, and `n`. The interval array has rows ordered by input
+then method. Scalar `to_frame()` output retains its method index; vectors
+use a `(input, method)` MultiIndex with `lower` and `upper` columns. Input
+and estimate attributes use immutable tuples, so pandas concatenation is
+well defined. These indexing conventions differ intentionally from R's
+one-based indices and labels such as `wilson[1]`. Proportion method requests
+retain repetitions and order, matching R.
+
+Python solves mid-p tails on the logit scale for tiny endpoint accuracy.
+Numerical Blaker limits are rounded outward by the endpoint tolerance to
+retain accepted jump points despite floating-point rounding. Python rejects
+Blaker inversions spanning more than 1,000,000 ordering changes, whereas R
+has no corresponding resource guard. Both languages use the same statistical
+constructions; numerical limits can differ within their inversion tolerances.
 
 Method labels identify corrections, for example `wilson-cc` and
 `clopper-pearson-midp`. Uncorrected and corrected analyses use separate calls.
@@ -167,6 +186,16 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
   `(9/10,3/10)`, 10 seconds for `(56/70,48/80)`, and 35 seconds for
   `(7/84,2/92)` at default tolerances. These are illustrative timings,
   not performance guarantees. Book comparisons retain Exact in hidden code.
+- Python one-proportion validation includes the SAS limits, direct score
+  equations and approximation formulas, SciPy Wilson/exact comparisons,
+  mid-p endpoint equations and trillion-trial boundary formulas, and direct
+  Blaker acceptance-set/coverage enumeration for n=1 through 8 at four
+  confidence levels. A dedicated symmetric n=7, p=0.5 jump check prevents
+  floating-point exclusion of accepted ties. The 358 exported R cases in
+  `ibist-py/tests/reference/prop_1s_r.json` are supplementary regressions,
+  with absolute endpoint tolerance `2e-8`; the exporter is
+  `data-raw/export-python-prop-1s-reference.R`. Scalar odds-ratio output,
+  vector input metadata, and presentation-only rounding are also checked.
 - Base R checks cover Wilson and Clopper–Pearson intervals and Wald
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.
