@@ -8,12 +8,15 @@
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"newcombe"} (default), \code{"wald"},
 #'   \code{"miettinen-nurminen"}, \code{"mee"}, \code{"agresti-caffo"},
-#'   or \code{"brown-li"}.
+#'   \code{"brown-li"}, or \code{"chan-zhang"}.
 #' @param correct Logical. Apply continuity correction to Newcombe and Wald
 #'   intervals. Other requested methods are unchanged.
 #' @param alternative One of \code{"two.sided"}, \code{"less"}, or
 #'   \code{"greater"}, referring to the proportion difference.
-#' @param tol Positive numerical tolerance for score inversion.
+#' @param tol Positive numerical tolerance for interval endpoints.
+#' @param nuisance.tol Positive absolute probability tolerance for the
+#'   Chan--Zhang nuisance maximization. Unresolved probabilities within this
+#'   tolerance are treated as acceptance, giving conservative endpoints.
 #'
 #' @details
 #' Newcombe's hybrid interval combines separate Wilson bounds using the
@@ -44,6 +47,33 @@
 #' remains the observed proportion difference, even though the interval uses
 #' adjusted proportions internally.
 #'
+#' Chan--Zhang inverts two inclusive one-sided exact unconditional score
+#' tests, each at half the error probability for a two-sided interval (at
+#' the full error probability for a one-sided bound). For each hypothesized
+#' difference, the tail probability is maximized over all feasible values
+#' of the nuisance probability. Multiplying every score by the common
+#' Miettinen--Nurminen variance factor does not change the ordering.
+#' This is the tail/central construction, not the Agresti--Min inversion of
+#' a single two-sided test. There is no mid-p or continuity correction.
+#'
+#' The exact p-value need not be continuous or monotone in the hypothesized
+#' difference. The search encloses the outer accepted limits rather than
+#' applying a root finder to a presumed monotone p-value. Interval bounds on
+#' the constrained scores enclose all tail orderings within a search interval.
+#' Nuisance maximization uses derivative-based bounds on the tail probability,
+#' including all local maxima, rather than a fixed grid alone. Unresolved
+#' probability differences within \code{nuisance.tol} are retained, and the
+#' returned endpoint is rounded outward within the search tolerance
+#' \code{tol}. Numerical tolerances can therefore widen the exact interval.
+#' These are floating-point calculations, not symbolic probability bounds.
+#' Computation enumerates \eqn{(n_1+1)(n_2+1)} tables and is intended for
+#' small samples. Even moderate sample sizes can require tens of seconds:
+#' the example with 7/84 versus 2/92 took about 35 seconds at default
+#' tolerances on the development machine. Runtime depends on the counts,
+#' sample sizes, numerical tolerances, and hardware.
+#' More than 1,000,000 possible tables is an error; use an
+#' approximate method for large samples. The Newcombe default is unchanged.
+#'
 #' @return An \code{ibist_ci} object with the observed named \code{estimate},
 #'   a \code{conf.int} matrix with one row per method, \code{conf.level},
 #'   \code{method}, \code{alternative}, and the two \code{sample.proportions}.
@@ -55,6 +85,14 @@
 #' Brown, L., and Li, X. (2005). Confidence intervals for two sample binomial
 #' distribution. \emph{Journal of Statistical Planning and Inference}, 130,
 #' 359--375. \doi{10.1016/j.jspi.2003.09.039}
+#'
+#' Chan, I. S. F., and Zhang, Z. (1999). Test-based exact confidence intervals
+#' for the difference of two binomial proportions. \emph{Biometrics}, 55,
+#' 1202--1209. \doi{10.1111/j.0006-341X.1999.01202.x}
+#'
+#' Hawila, N., and Berg, A. (2023). Exact-corrected confidence interval for
+#' risk difference in noninferiority binomial trials. \emph{Biometrics}, 79,
+#' 1133--1144. \doi{10.1111/biom.13688}
 #'
 #' Mee, R. W. (1984). Confidence bounds for the difference between two
 #' probabilities. \emph{Biometrics}, 40, 1175--1176.
@@ -71,6 +109,7 @@
 #' prop.2s.ci(c(12, 4), c(40, 30),
 #'             method = c("miettinen-nurminen", "mee"))
 #' prop.2s.ci(c(9, 3), c(10, 10), method = c("newcombe", "brown-li"))
+#' prop.2s.ci(c(9, 3), c(10, 10), method = "chan-zhang")
 #' prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
 #' tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 #' prop.2s.ci(tab)
@@ -78,14 +117,18 @@
 prop.2s.ci <- function(
   x, n = NULL, conf.level = 0.95,
   method = c("newcombe", "wald", "miettinen-nurminen", "mee",
-             "agresti-caffo", "brown-li"),
+             "agresti-caffo", "brown-li", "chan-zhang"),
   correct = FALSE, alternative = c("two.sided", "less", "greater"),
-  tol = 1e-8
+  tol = 1e-8, nuisance.tol = 1e-10
 ) {
   counts <- independent_binomial_counts(x, n)
   settings <- validate_binomial_ci_settings(conf.level, alternative, tol)
   methods <- if (missing(method)) method[1L] else {
     match.arg(method, several.ok = TRUE)
+  }
+  if (!is.numeric(nuisance.tol) || length(nuisance.tol) != 1L ||
+        !is.finite(nuisance.tol) || nuisance.tol <= 0 || nuisance.tol >= 1) {
+    stop("'nuisance.tol' must be a number between 0 and 1.")
   }
   validate_ci_flag(correct, "correct")
   if (correct && !any(methods %in% c("wald", "newcombe"))) {
@@ -107,6 +150,10 @@ prop.2s.ci <- function(
       } else 1
       limits <- independent_score_limits(counts$x, counts$n, z, tol,
                                           variance.factor)
+    } else if (method == "chan-zhang") {
+      limits <- independent_exact_limits(counts$x, counts$n, settings$tail,
+                                         settings$alternative, tol,
+                                         nuisance.tol)
     } else if (method == "brown-li") {
       adjusted <- (counts$x + 0.5) / (counts$n + 1)
       margin <- z * sqrt(sum(adjusted * (1 - adjusted) / counts$n))

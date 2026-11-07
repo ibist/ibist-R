@@ -85,6 +85,33 @@ For independent proportions:
   the observed difference as the reported estimate. Continuity correction
   does not apply. Restrict the limits to `[-1,1]`.
 
+- **Chan–Zhang:** select `method = "chan-zhang"` to invert inclusive
+  one-sided unconditional score tests at `alpha/2` for two-sided intervals,
+  or `alpha` for a one-sided bound. Enumerate both binomial counts and
+  maximize the tail probability over the feasible nuisance probability.
+  The common Miettinen–Nurminen variance factor cancels in the ordering.
+  This is the tail/central construction, not the Agresti–Min square interval.
+  Neither continuity correction nor mid-p applies; the default stays Newcombe.
+  Constrained-MLE brackets enclose the score ordering throughout each interval
+  of candidate differences. Writing `p2=q`, implicit differentiation of the
+  constrained likelihood equation gives `dq/d(delta)=-I1/(I1+I2)` for an
+  interior maximum, where each `Ii` is the nonnegative observed binomial
+  information. Hence fitted `p1` increases and fitted `p2` decreases with
+  `delta`; boundary fits have the same monotonicity. These ranges bound each
+  variance and score. The outer search discards only wholly rejected
+  intervals, so discontinuities and disconnected accepted components are
+  retained. A nuisance search uses first derivatives and the bound
+  `abs(f''(q)) <= 2*N*(N-1)`, where `N=n1+n2`, to cover all local maxima.
+  This follows by writing the event probability as an expectation of a Boolean
+  function of `N` Bernoulli variables: every mixed second finite difference
+  has absolute value at most two. Split the search at a capped probability's
+  kink. The endpoint tolerance is `tol`; absolute probability tolerance
+  `nuisance.tol` defaults to `1e-10`. Unresolved differences within that
+  probability tolerance are accepted; endpoints are rounded outward.
+  These are conservative floating-point enclosures, not symbolic arithmetic.
+  Computation is intended for small samples and errors if
+  `(n1+1)*(n2+1) > 1e6`. Large samples should use approximate intervals.
+
 Restrict difference limits to `[-1,1]`. For the ratio:
 
 - **Katz:** exponentiate a Wald interval for `log(p1/p2)`, with variance
@@ -124,6 +151,22 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
   Formula tests distinguish the original sample-size denominators from
   adjusted sample sizes and posterior variances. Hidden DescTools comparisons
   use `method = "blj"` with absolute tolerance `1e-10`.
+- Chan–Zhang matches the same search-extracted WUSS Table 2 in all three
+  scenarios: `(0.0382,0.3453)`, `(0.1608,0.8795)`, and `(0.6915,1)`.
+  The original-PDF qualification above applies to these values too.
+  Independent coverage enumeration uses every outcome for sample sizes
+  `(1,1)`, `(2,3)`, and `(3,2)`, at 80% and 95%, on an 11-by-11 probability
+  grid including boundaries. Reversal, one-sided equivalence, constant
+  responses, and a disconnected acceptance component are tested.
+  The latter uses the data in Hawila and Berg (2023), Figure 1; direct
+  likelihood optimization and full table summation verify the component.
+  Direct comparisons with `Exact::exact.test(method = "z-pooled",
+  tsmethod = "central")` agree within `1e-4` in the `(9/10,3/10)` and
+  `(7/84,2/92)` examples, allowing for Exact's numerical inversion.
+  Measured native R times in this workspace were about 1 second for
+  `(9/10,3/10)`, 10 seconds for `(56/70,48/80)`, and 35 seconds for
+  `(7/84,2/92)` at default tolerances. These are illustrative timings,
+  not performance guarantees. Book comparisons retain Exact in hidden code.
 - Base R checks cover Wilson and Clopper–Pearson intervals and Wald
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.
