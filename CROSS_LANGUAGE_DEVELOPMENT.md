@@ -43,8 +43,11 @@ modification specified separately where applicable. See
 [the binomial interval specification](BINOMIAL_INTERVALS.md) for defaults,
 result fields, table orientation, and validation requirements. These interval
 families were implemented in R first. `prop_1s_ci()` is now implemented in
-Python, including vector inputs and all one-proportion methods. The
-independent-difference and risk-ratio families remain pending in Python.
+Python, including vector inputs and all one-proportion methods.
+`prop_2s_ci()` now implements the six approximate independent-difference
+methods with scalar estimates and separate group metadata. Chan--Zhang exact
+intervals and risk-ratio intervals remain pending in Python. Basic rate
+functions follow risk-ratio intervals, ahead of the Chan--Zhang port.
 Python uses zero-based input metadata and a DataFrame MultiIndex for vector
 intervals, while scalar interval output retains its existing layout. See the
 shared specification for numerical tolerances and deliberate differences.

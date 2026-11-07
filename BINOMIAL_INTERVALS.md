@@ -1,8 +1,9 @@
 # Binomial interval specification
 
 Agreed naming and interface principles: 2026-11-06. R is implemented first.
-The one-proportion family is now implemented in both languages; independent
-proportion differences and risk-ratio intervals remain pending in Python.
+The one-proportion family and the six approximate independent-proportion
+difference methods are now implemented in both languages. Chan--Zhang exact
+difference intervals and risk-ratio intervals remain pending in Python.
 
 ## Interfaces and results
 
@@ -43,6 +44,24 @@ and estimate attributes use immutable tuples, so pandas concatenation is
 well defined. These indexing conventions differ intentionally from R's
 one-based indices and labels such as `wilson[1]`. Proportion method requests
 retain repetitions and order, matching R.
+
+For independent differences, Python returns a scalar `estimate`, one interval
+per method, and fresh `sample_proportions` and `samples` objects identifying
+the two groups in their comparison order. `samples` has zero-based sample
+indices and `x` and `n` columns. These are distinct from the per-interval
+metadata of vector one-proportion calls. Count vectors require two explicit
+trial counts; a scalar `n` is not recycled. Table rows are independent
+samples and columns successes/failures; an all-zero event or failure column
+is valid. Newcombe remains the default, and Chan--Zhang is rejected explicitly
+until its Python implementation is available.
+
+Python uses logit-scaled nuisance probabilities and distance to the observed
+difference for Mee and Miettinen--Nurminen inversion. Success and failure
+probabilities are calculated separately to retain tiny failure probabilities
+when a success probability rounds to one. This differs numerically from R's
+direct probability-scale roots but preserves the score construction and fixed
+variance-factor distinction. The six approximate methods share R's correction
+rules, parameter boundaries, and one-sided tail convention.
 
 Python solves mid-p tails on the logit scale for tiny endpoint accuracy.
 Numerical Blaker limits are rounded outward by the endpoint tolerance to
@@ -196,6 +215,16 @@ DescTools is used for comparison only. It is not an ibist runtime dependency.
   with absolute endpoint tolerance `2e-8`; the exporter is
   `data-raw/export-python-prop-1s-reference.R`. Scalar odds-ratio output,
   vector input metadata, and presentation-only rounding are also checked.
+- Python independent-difference validation covers direct approximation
+  formulas, Newcombe from SciPy Wilson bounds, independent constrained
+  likelihood maximization at score endpoints, zero-event closed forms with
+  trillion-trial sample sizes, reversal/complementation, one-sided bounds,
+  and low confidence levels. The 255 R cases in
+  `ibist-py/tests/reference/prop_2s_r.json` supplement those checks, with
+  absolute endpoint tolerance `2e-8`. Regenerate using
+  `data-raw/export-python-prop-2s-reference.R`; the generator records source
+  hashes and the R revision. Continuity correction never switches between
+  Mee and Miettinen--Nurminen; Brown--Li retains the original n denominators.
 - Base R checks cover Wilson and Clopper–Pearson intervals and Wald
   difference intervals. Account explicitly for `prop.test()`'s null-dependent
   cap on continuity correction when comparing corrected intervals.
