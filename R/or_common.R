@@ -31,7 +31,7 @@
 #' Conditional on the margins of every stratum, the upper-left cell in each
 #' table has a noncentral hypergeometric distribution. The test combines the
 #' strata through the sum of those upper-left cells. The two-sided test uses
-#' the Jung et al. (2014) rule
+#' the Jung (2014) rule
 #' \eqn{2\min(p_\mathrm{less},p_\mathrm{greater})},
 #' truncated at one. The confidence interval is obtained by inverting these
 #' one-sided exact tests.
@@ -96,9 +96,8 @@
 #' disease. \emph{Annals of Human Genetics}, 19(4), 251--253.
 #' \doi{10.1111/j.1469-1809.1955.tb01348.x}
 #'
-#' Jung, S. H., Biggerstaff, B. J., and Kim, C. (2014). A class of exact
-#' tests for a common odds ratio in stratified 2 x 2 tables.
-#' \emph{Biometrical Journal}, 56(1), 97--109.
+#' Jung, S.-H. (2014). Stratified Fisher's exact test and its sample
+#' size calculation. \emph{Biometrical Journal}, 56(1), 129--140.
 #' \doi{10.1002/bimj.201300048}
 #'
 #' Mehta, C. R., Patel, N. R., and Gray, R. (1985). On computing an exact

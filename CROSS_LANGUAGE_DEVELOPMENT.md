@@ -240,6 +240,37 @@ limit raises an error instead of substituting a different method. Python
 simulation options are `n_resamples` and `random_state`. General-table tests
 use the same relative probability tie tolerance `1e-7` as the binary tests.
 
+### Exact common odds-ratio tests
+
+`or.common.test(x, theta = 1, alternative = "two.sided")` has the Python
+counterpart `or_common_test()`, using the distribution engine shared with
+`or_common_ci()`. Input is a list of 2 x 2 tables or a 2 x 2 x K array.
+The null specifies the same positive finite OR in every stratum. Conditional
+on the margins, combine noncentral hypergeometric distributions at that OR.
+Use inclusive tails of the total upper-left count; the two-sided p-value is
+twice the smaller tail, capped at one. This follows Jung's (2014) stratified
+Fisher tail formulation, with the non-unit-null extension used in R.
+
+Return `TestResult` with the raw integer statistic, p-value, alternative,
+conditional common-OR MLE, `null_value=theta`, and stratum count. R's
+`parameter` duplicates the null OR; do not translate it into degrees of
+freedom. Python uses `df=None` and a separate `n_strata`. Confidence limits
+remain in the CI function. The MLE depends on the data, independently of
+the tested null. Empty-margin/deterministic strata follow the existing CI
+engine, including R's estimate-zero convention for an unidentified OR.
+Python retains exact integer count totals and sums tails in log space.
+
+Independent checks include full allocation enumeration, hypergeometric
+tails, exact conditional null rejection probabilities, CI/test inversion,
+reversal invariance, the primary paper's Table 2, and tiny-tail formulas.
+`data-raw/export-python-common-test-reference.R` exports 456 further R
+comparisons, including nonzero support minima, boundary estimates, and
+non-unit nulls. P-value tolerance is `2e-10` relative without an absolute
+allowance; conditional MLE tolerance is `2e-9` relative or `1e-10` absolute.
+The accompanying R bibliography correction uses the verified reference:
+Jung, S.-H. (2014), Biometrical Journal 56(1), 129--140,
+DOI `10.1002/bimj.201300048`.
+
 ### Nominal association measures
 
 The R interface is `nominal.assoc(x, measure = c("phi", "contingency",
