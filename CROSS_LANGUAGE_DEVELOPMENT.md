@@ -48,9 +48,10 @@ families are being implemented in R first; Python parity remains pending.
 
 On 2026-11-06, the authors chose `indep.test()` in R and `indep_test()` in
 Python to provide a common interface to independence tests. The first R
-implementation supports `method = "pearson"` (default) and `method = "lr"`;
-Python parity remains pending. This prepares replacements for the book's
-use of DescTools for the likelihood-ratio test and expected cell counts;
+implementation supports `method = "pearson"` (default), `method = "lr"`,
+and `method = "fisher"`. Python parity remains pending. The asymptotic
+methods prepare replacements for the book's use of DescTools for the
+likelihood-ratio test and expected cell counts;
 manuscript migration is deferred until after the final exam.
 
 - Input is a two-dimensional table of finite, non-negative integer counts,
@@ -85,8 +86,46 @@ manuscript migration is deferred until after the final exam.
   cells, independent tables, sparse-count warnings, transposition and
   permutation invariance, invalid inputs, and the capped Yates case.
 
-Fisher's exact test, simulated p-values, goodness-of-fit tests, and
-likelihood-ratio continuity corrections are outside this first interface.
+Fisher's method wraps `stats::fisher.test()` for 2 x 2 and general RxC
+tables. It uses the same input validation and adds observed and expected
+counts to the returned `htest`; it does not call `chisq.test()` or issue
+an asymptotic small-count warning. The null hypothesis is independence
+(odds ratio one for 2 x 2 tables), with a two-sided exact test by default.
+
+- Named R options forwarded through `...` are `alternative`, `conf.int`,
+  `conf.level`, `workspace`, `simulate.p.value`, and `B`. Reject other names,
+  duplicates, unnamed options, and Fisher options on an asymptotic method.
+  Reject continuity correction for Fisher. Hybrid approximations and a
+  non-unit null odds ratio are outside the independence interface.
+- For 2 x 2 tables, support `two.sided`, `less`, and `greater` alternatives.
+  Retain R's conditional maximum likelihood odds-ratio estimate and exact
+  confidence interval (default confidence level 0.95); `conf.int = FALSE`
+  omits the interval. The estimate is not the sample cross-product ratio,
+  and the interval is not for a difference of proportions.
+- For larger tables, support only two-sided inference. Use R's exact
+  network algorithm by default and pass through workspace errors rather
+  than silently substituting an approximation. Monte Carlo computation is
+  available through `simulate.p.value = TRUE`, with `B = 2000` by default.
+  It samples tables with the observed margins fixed and uses the plus-one
+  p-value convention, giving a minimum of `1 / (B + 1)`. R's simulation
+  option does not change the exact calculation for a 2 x 2 table.
+- Preserve Fisher's own inference fields. There is no chi-squared statistic,
+  degrees of freedom, or Pearson residual output for this method. Return
+  observed and expected tables for all three methods, preserving labels.
+- The future Python Fisher implementation must support general RxC tables,
+  not just 2 x 2 tables, independently of SciPy's interface. Use a native
+  exact algorithm or fixed-margin Monte Carlo implementation as needed;
+  SciPy is not required for the Fisher calculation. Two-sided exact p-values
+  sum probabilities of tables no more likely than the observed table under
+  the fixed-margin null, rather than ordering tables by Pearson X-squared.
+  R's `fisher.test()` is a cross-language reference, supplemented by direct
+  hypergeometric and small RxC enumeration checks. Record probability tie
+  tolerances, including R's relative `1e-7` tolerance for 2 x 2 tables.
+  Seed reproducibility is required within each implementation; Monte Carlo
+  samples need not match across languages.
+
+Goodness-of-fit tests and likelihood-ratio continuity corrections remain
+outside this interface.
 
 Direct development comparisons with DescTools 0.99.60 covered both book
 G-test examples, a zero-cell table, and 100 seeded random tables of sizes

@@ -104,9 +104,97 @@ test_that("independence tests reject invalid counts, margins, and options", {
   for (correct in list(NA, 1, "yes", logical(), c(TRUE, FALSE))) {
     expect_error(indep.test(tab, correct = correct), "must be TRUE or FALSE")
   }
-  expect_error(indep.test(tab, method = "fisher"), "arg")
+  expect_error(indep.test(tab, method = "unknown"), "arg")
   expect_error(indep.test(tab, method = "lr", correct = TRUE),
                "only available for Pearson")
   expect_error(indep.test(matrix(10, 2, 3), correct = TRUE),
                "only available for Pearson")
+})
+
+test_that("2 x 2 Fisher preserves base R inference fields", {
+  tab <- matrix(c(7, 77, 2, 90), 2, byrow = TRUE,
+                dimnames = list(group = c("A", "B"),
+                                outcome = c("yes", "no")))
+  for (alternative in c("two.sided", "less", "greater")) {
+    result <- indep.test(tab, "fisher", alternative = alternative,
+                         conf.level = 0.9)
+    reference <- stats::fisher.test(tab, alternative = alternative,
+                                    conf.level = 0.9)
+    expect_s3_class(result, "htest")
+    for (name in names(reference)) {
+      expect_identical(result[[name]], reference[[name]])
+    }
+    expect_identical(result$observed, tab)
+    expected <- outer(rowSums(tab), colSums(tab)) / sum(tab)
+    dimnames(expected) <- dimnames(tab)
+    expect_equal(result$expected, expected)
+    expect_null(result$statistic)
+    expect_null(result$parameter)
+  }
+  expect_null(indep.test(tab, "fisher", conf.int = FALSE)$conf.int)
+})
+
+test_that("Fisher's 2 x 2 p-values agree with hypergeometric enumeration", {
+  tab <- matrix(c(1, 4, 3, 2), 2, byrow = TRUE)
+  values <- 0:4
+  probabilities <- stats::dhyper(values, m = 5, n = 5, k = 4)
+  observed <- probabilities[values == tab[1, 1]]
+  two.sided <- sum(probabilities[probabilities <= observed * (1 + 1e-7)])
+  expect_equal(indep.test(tab, "fisher")$p.value, two.sided)
+  expect_equal(indep.test(tab, "fisher", alternative = "less")$p.value,
+               sum(probabilities[values <= 1]))
+  expect_equal(indep.test(tab, "fisher", alternative = "greater")$p.value,
+               sum(probabilities[values >= 1]))
+})
+
+test_that("RxC Fisher agrees with independent fixed-margin enumeration", {
+  tab <- matrix(c(1, 2, 0, 1, 0, 2), 2, byrow = TRUE)
+  margins <- colSums(tab)
+  candidates <- expand.grid(lapply(margins, function(n) 0:n))
+  candidates <- as.matrix(candidates[rowSums(candidates) == 3, ])
+  probabilities <- apply(candidates, 1, function(row) {
+    prod(choose(margins, row)) / choose(sum(tab), 3)
+  })
+  observed <- prod(choose(margins, tab[1, ])) / choose(sum(tab), 3)
+  expected <- sum(probabilities[probabilities <= observed * (1 + 1e-7)])
+  result <- indep.test(tab, "fisher")
+  expect_equal(result$p.value, expected, tolerance = 1e-12)
+  expect_equal(result$p.value, stats::fisher.test(tab)$p.value)
+  expect_equal(indep.test(t(tab), "fisher")$p.value, result$p.value)
+  expect_equal(indep.test(tab[, 3:1], "fisher")$p.value, result$p.value)
+  expect_null(result$estimate)
+  expect_null(result$conf.int)
+  expect_null(result$statistic)
+  expect_no_warning(indep.test(tab, "fisher"))
+})
+
+test_that("RxC Fisher simulation reproduces base R with a fixed seed", {
+  tab <- matrix(c(4, 1, 2, 3, 5, 1, 2, 4, 6), 3)
+  set.seed(20261106)
+  result <- indep.test(tab, "fisher", simulate.p.value = TRUE, B = 499)
+  set.seed(20261106)
+  reference <- stats::fisher.test(tab, simulate.p.value = TRUE, B = 499)
+  expect_identical(result$p.value, reference$p.value)
+  expect_identical(result$method, reference$method)
+  expect_gte(result$p.value, 1 / 500)
+  expect_lte(result$p.value, 1)
+})
+
+test_that("Fisher handles zero cells and validates method-specific options", {
+  tab <- matrix(c(0, 10, 3, 7), 2, byrow = TRUE)
+  expect_no_warning(result <- indep.test(tab, "fisher"))
+  expect_equal(result$p.value, stats::fisher.test(tab)$p.value)
+  expect_error(indep.test(tab, "fisher", correct = TRUE),
+               "only available for Pearson")
+  expect_error(indep.test(tab, "pearson", conf.int = FALSE),
+               "only named Fisher options")
+  expect_error(indep.test(tab, "fisher", or = 2), "only named Fisher options")
+  expect_error(indep.test(tab, "fisher", FALSE, "greater"),
+               "only named Fisher options")
+  expect_error(indep.test(tab, "fisher", B = 10, B = 20),
+               "only named Fisher options")
+  expect_error(indep.test(matrix(1, 2, 3), "fisher",
+                          alternative = "greater"),
+               "require a 2 x 2 table")
+  expect_error(indep.test(tab, "fisher", alternative = "unknown"))
 })

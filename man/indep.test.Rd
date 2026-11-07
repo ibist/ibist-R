@@ -4,36 +4,49 @@
 \alias{indep.test}
 \title{Tests of Independence in a Contingency Table}
 \usage{
-indep.test(x, method = c("pearson", "lr"), correct = FALSE)
+indep.test(x, method = c("pearson", "lr", "fisher"), correct = FALSE, ...)
 }
 \arguments{
 \item{x}{A two-dimensional matrix or table of non-negative integer counts,
 with at least two rows and two columns and positive marginal totals.}
 
-\item{method}{The test statistic: \code{"pearson"} (default) or
-\code{"lr"} (likelihood ratio).}
+\item{method}{The test: \code{"pearson"} (default), \code{"lr"}
+(likelihood ratio), or \code{"fisher"}.}
 
 \item{correct}{Logical. Apply Yates' continuity correction to Pearson's
 test for a 2 x 2 table. Default is \code{FALSE}. Setting this to
 \code{TRUE} for another method or table size is an error.}
+
+\item{...}{Named options for Fisher's method, passed to
+\code{\link[stats]{fisher.test}}: \code{alternative}, \code{conf.int},
+\code{conf.level}, \code{workspace}, \code{simulate.p.value}, and
+\code{B}. Other names, unnamed options, and options supplied to another
+method are errors. Fisher's null odds ratio is fixed at one.}
 }
 \value{
 An object of class \code{"htest"} containing:
 \describe{
   \item{statistic}{The named test statistic, \code{X-squared} or
-    \code{G-squared}.}
-  \item{parameter}{Degrees of freedom, named \code{df}.}
-  \item{p.value}{The asymptotic upper-tail p-value.}
+    \code{G-squared}, for the two asymptotic methods. Fisher's method
+    does not return this field.}
+  \item{parameter}{Degrees of freedom, named \code{df}, for the two
+    asymptotic methods. Fisher's method does not return this field.}
+  \item{p.value}{The asymptotic, exact, or Monte Carlo p-value.}
   \item{method, data.name}{Descriptions of the test and input.}
   \item{observed, expected}{Observed and expected count matrices,
     retaining the input's dimension names.}
   \item{residuals, stdres}{Pearson and standardized Pearson residuals,
-    respectively, for either test method. These are not deviance residuals.}
+    respectively, for the two asymptotic methods. These are not deviance
+    residuals and are not returned by Fisher's method.}
+  \item{estimate, null.value, alternative, conf.int}{For 2 x 2 Fisher
+    tests, the odds-ratio inference fields from \code{fisher.test()}.
+    The confidence interval is omitted when \code{conf.int = FALSE}.}
 }
 }
 \description{
 Tests independence of the row and column variables using Pearson's
-chi-squared statistic or the likelihood-ratio G-squared statistic.
+chi-squared statistic, the likelihood-ratio G-squared statistic, or
+Fisher's conditional test.
 }
 \details{
 Under independence, the expected count in cell (i,j) is
@@ -56,8 +69,25 @@ The likelihood-ratio statistic is computed directly. Expected counts and
 Pearson residual diagnostics for both methods come from
 \code{chisq.test()}. Both methods retain its warning when any expected
 count is below 5; small expected counts can make the asymptotic p-value
-unreliable. Exact tests, simulated p-values, goodness-of-fit tests, and
-continuity corrections for the likelihood-ratio test are not implemented.
+unreliable.
+
+Fisher's method wraps \code{fisher.test()} for 2 x 2 and larger tables,
+conditioning on the row and column margins. It defaults to a two-sided
+exact test of independence. For 2 x 2 tables, \code{alternative = "less"}
+or \code{"greater"} tests an odds ratio below or above one, respectively.
+The returned estimate is the conditional maximum likelihood odds ratio;
+its confidence interval is for that odds ratio, not a proportion
+difference. Fisher's method does not use a continuity correction and does
+not issue the small-expected-count approximation warning.
+
+For larger tables, only a two-sided test is available. The exact network
+algorithm may require a larger \code{workspace}; its errors are passed
+through. Alternatively, \code{simulate.p.value = TRUE} requests a Monte
+Carlo p-value with \code{B} replicates (default 2000). Set a random seed
+before the call for reproducibility. Simulation applies only to tables
+larger than 2 x 2; Fisher's 2 x 2 calculation remains exact.
+Goodness-of-fit tests, hybrid Fisher approximations, and likelihood-ratio
+continuity corrections are not implemented.
 }
 \examples{
 screening <- matrix(c(1366, 14205, 383, 4983), nrow = 2, byrow = TRUE)
@@ -65,6 +95,10 @@ indep.test(screening)
 indep.test(screening, method = "lr")
 indep.test(screening, correct = TRUE)
 indep.test(screening)$expected
+small <- matrix(c(7, 77, 2, 90), nrow = 2, byrow = TRUE)
+indep.test(small, method = "fisher")
+indep.test(small, method = "fisher", alternative = "greater",
+           conf.int = FALSE)
 
 }
 \references{
@@ -72,6 +106,28 @@ SAS Institute Inc. (2016). \emph{SAS/STAT 14.2 User's Guide}.
 The FREQ Procedure, pp. 2759--2763: Chi-Square Tests and Statistics.
 Cary, NC: SAS Institute Inc.
 \url{https://support.sas.com/documentation/onlinedoc/stat/142/freq.pdf}
+
+Fisher, R. A. (1935). The logic of inductive inference.
+\emph{Journal of the Royal Statistical Society}, 98(1), 39--82.
+\doi{10.2307/2342435}
+
+Fisher, R. A. (1962). Confidence limits for a cross-product ratio.
+\emph{Australian Journal of Statistics}, 4(1), 41.
+\doi{10.1111/j.1467-842X.1962.tb00285.x}
+
+Mehta, C. R., and Patel, N. R. (1983). A network algorithm for performing
+Fisher's exact test in r x c contingency tables.
+\emph{Journal of the American Statistical Association}, 78(382), 427--434.
+\doi{10.1080/01621459.1983.10477989}
+
+Clarkson, D. B., Fan, Y., and Joe, H. (1993). A remark on Algorithm 643:
+FEXACT: An algorithm for performing Fisher's exact test in r x c
+contingency tables. \emph{ACM Transactions on Mathematical Software},
+19(4), 484--488. \doi{10.1145/168173.168412}
+
+Patefield, W. M. (1981). Algorithm AS 159: An efficient method of
+generating R x C tables with given row and column totals.
+\emph{Applied Statistics}, 30(1), 91--97. \doi{10.2307/2346669}
 }
 \seealso{
 \code{\link[stats]{chisq.test}},

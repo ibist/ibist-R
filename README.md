@@ -14,6 +14,12 @@ contingency-table independence, with continuity correction off by default.
 Use `method = "lr"` for the likelihood-ratio G-squared test. Both return
 observed and expected cell counts alongside the test results. Set
 `correct = TRUE` for Yates' correction in Pearson's test of a 2 x 2 table.
+Use `method = "fisher"` to wrap `stats::fisher.test()` for 2 x 2 or larger
+tables. Named Fisher options include `alternative`, `conf.int`, `conf.level`,
+`workspace`, `simulate.p.value`, and `B`. The 2 x 2 estimate and confidence
+interval describe the conditional odds ratio. All methods return observed
+and expected counts; Fisher returns no chi-squared statistic or degrees
+of freedom.
 
 `nominal.assoc(x)` returns Phi, Pearson's contingency coefficient, and
 Cramer's V as descriptive point estimates. Use `measure = "cramer-v"` to
