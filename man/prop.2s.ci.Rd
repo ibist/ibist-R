@@ -11,9 +11,10 @@ prop.2s.ci(
   method = c("newcombe", "wald", "miettinen-nurminen", "mee", "agresti-caffo",
     "brown-li", "chan-zhang"),
   correct = FALSE,
-  alternative = c("two.sided", "less", "greater"),
+  alternative = NULL,
   tol = 1e-08,
-  nuisance.tol = 1e-10
+  nuisance.tol = 1e-10,
+  side = NULL
 )
 }
 \arguments{
@@ -31,19 +32,24 @@ rows are independent samples and columns are successes and failures.}
 \item{correct}{Logical. Apply continuity correction to Newcombe and Wald
 intervals. Other requested methods are unchanged.}
 
-\item{alternative}{One of \code{"two.sided"}, \code{"less"}, or
-\code{"greater"}, referring to the proportion difference.}
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{tol}{Positive numerical tolerance for interval endpoints.}
 
 \item{nuisance.tol}{Positive absolute probability tolerance for the
 Chan--Zhang nuisance maximization. Unresolved probabilities within this
 tolerance are treated as acceptance, giving conservative endpoints.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
 }
 \value{
 An \code{ibist_ci} object with the observed named \code{estimate},
   a \code{conf.int} matrix with one row per method, \code{conf.level},
-  \code{method}, \code{alternative}, and the two \code{sample.proportions}.
+  \code{method}, \code{side}, and the two \code{sample.proportions}.
 }
 \description{
 Computes intervals for the first population proportion minus the second.
@@ -111,7 +117,7 @@ prop.2s.ci(c(12, 4), c(40, 30),
             method = c("miettinen-nurminen", "mee"))
 prop.2s.ci(c(9, 3), c(10, 10), method = c("newcombe", "brown-li"))
 prop.2s.ci(c(9, 3), c(10, 10), method = "chan-zhang")
-prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
+prop.2s.ci(c(12, 4), c(40, 40), side = "lower")
 tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 prop.2s.ci(tab)
 }

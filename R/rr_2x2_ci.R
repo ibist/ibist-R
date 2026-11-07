@@ -6,10 +6,14 @@
 #' @param x A 2 x 2 table of non-negative integer counts. Rows are samples;
 #'   the first column contains events and the second contains non-events.
 #'   Both row totals must be positive.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"koopman"} (default) or \code{"katz"}.
-#' @param alternative One of \code{"two.sided"}, \code{"less"}, or
-#'   \code{"greater"}, referring to the risk ratio.
 #' @param tol Positive numerical tolerance for score inversion.
 #'
 #' @details
@@ -33,7 +37,7 @@
 #'
 #' @return An \code{ibist_ci} object containing the observed named
 #'   \code{estimate}, a \code{conf.int} matrix with one row per method,
-#'   \code{conf.level}, \code{method}, \code{alternative}, and the two
+#'   \code{conf.level}, \code{method}, \code{side}, and the two
 #'   \code{sample.proportions}.
 #' @references
 #' Katz, D., Baptista, J., Azen, S. P., and Pike, M. C. (1978). Obtaining
@@ -46,16 +50,18 @@
 #' vf <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 #' rr.2x2.ci(vf)
 #' rr.2x2.ci(vf, method = c("katz", "koopman"))
-#' rr.2x2.ci(vf, alternative = "greater")
+#' rr.2x2.ci(vf, side = "lower")
 #' @export
 rr.2x2.ci <- function(
   x, conf.level = 0.95, method = c("koopman", "katz"),
-  alternative = c("two.sided", "less", "greater"), tol = 1e-8
+  alternative = NULL, tol = 1e-8, side = NULL
 ) {
   if (!is.matrix(x) && !inherits(x, "table")) {
     stop("'x' must be a 2 x 2 table of non-negative integer counts.")
   }
   counts <- independent_binomial_counts(x)
+  orientation <- resolve_ci_side(side, alternative)
+  alternative <- orientation$alternative
   settings <- validate_binomial_ci_settings(conf.level, alternative, tol)
   methods <- if (missing(method)) method[1L] else {
     match.arg(method, several.ok = TRUE)
@@ -83,6 +89,7 @@ rr.2x2.ci <- function(
     intervals = intervals, conf.level = conf.level, parameter = "risk ratio",
     data.name = deparse(substitute(x)), null.value = c("risk ratio" = 1)
   )
+  result$side <- orientation$side
   result$alternative <- settings$alternative
   result$sample.proportions <- stats::setNames(p, c("prop 1", "prop 2"))
   result

@@ -4,7 +4,13 @@
 #'
 #' @param b Number of discordant pairs favorable to group 1.
 #' @param c Number of discordant pairs favorable to group 2.
-#' @param n Total number of matched pairs.
+#' @param n Positive total number of matched pairs.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level for the interval.
 #' @param method Method or methods for confidence interval. One or more of
 #'   \code{"score"}, \code{"wald"}, \code{"waldcc"}, \code{"agresti-min"},
@@ -66,8 +72,9 @@ prop.paired.ci <- function(
   n,
   conf.level = 0.95,
   method = c("score", "wald", "waldcc", "agresti-min", "wang"),
-  ...
+  side = NULL, alternative = NULL, ...
 ) {
+  side <- resolve_ci_side(side, alternative)$side
   counts <- validate_paired_counts(b, c, n)
   b <- counts[["b"]]
   c <- counts[["c"]]
@@ -86,11 +93,11 @@ prop.paired.ci <- function(
     methods,
     function(method) switch(
       method,
-      score = paired_ci_score(b, c, n, conf.level, ...),
-      wald = paired_ci_wald(b, c, n, conf.level, correct = FALSE),
-      waldcc = paired_ci_wald(b, c, n, conf.level, correct = TRUE),
-      "agresti-min" = paired_ci_agresti_min(b, c, n, conf.level),
-      wang = paired_ci_wang(b, c, n, conf.level, ...)
+      score = paired_ci_score(b, c, n, conf.level, side = side, ...),
+      wald = paired_ci_wald(b, c, n, conf.level, correct = FALSE, side = side),
+      waldcc = paired_ci_wald(b, c, n, conf.level, correct = TRUE, side = side),
+      "agresti-min" = paired_ci_agresti_min(b, c, n, conf.level, side = side),
+      wang = paired_ci_wang(b, c, n, conf.level, side = side, ...)
     )
   )
 
@@ -100,18 +107,22 @@ prop.paired.ci <- function(
     intervals = intervals,
     conf.level = conf.level,
     parameter = "paired proportion difference",
+    side = side,
     data.name = paste0("b = ", b, ", c = ", c, ", n = ", n),
     null.value = c("proportion difference" = 0)
   )
 }
 
 paired_ci_wang <- function(b, c, n, conf.level, precision = 0.00001,
-                           grid.one = 30, grid.two = 20) {
+                           grid.one = 30, grid.two = 20,
+                           side = "two.sided") {
   result <- wang.paired.ci(
     n10 = b,
     t = n - b - c,
     n01 = c,
     conf.level = conf.level,
+    CItype = switch(side, two.sided = "Two.sided",
+                    lower = "Lower", upper = "Upper"),
     precision = precision,
     grid.one = grid.one,
     grid.two = grid.two
@@ -125,6 +136,7 @@ validate_paired_counts <- function(b, c, n) {
         any(!is.finite(vals)) || any(vals < 0) || any(vals != floor(vals))) {
     stop("'b', 'c', and 'n' must be single non-negative integer counts.")
   }
+  if (n == 0) stop("'n' must be positive.")
   if (b + c > n)
     stop("'b + c' must not exceed 'n'.")
   vals <- as.integer(vals)
@@ -132,19 +144,22 @@ validate_paired_counts <- function(b, c, n) {
   vals
 }
 
-paired_ci_wald <- function(b, c, n, conf.level, correct) {
+paired_ci_wald <- function(b, c, n, conf.level, correct,
+                           side = "two.sided") {
   alpha <- 1 - conf.level
-  z <- stats::qnorm(1 - alpha / 2)
+  z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
   estimate <- (b - c) / n
   se <- sqrt((b + c) - (b - c)^2 / n) / n
   correction <- if (correct) 1 / n else 0
 
-  truncate_unit(estimate + c(-1, 1) * (z * se + correction))
+  ci_bounds(truncate_unit(estimate + c(-1, 1) * (z * se + correction)),
+            side, c(-1, 1))
 }
 
-paired_ci_agresti_min <- function(b, c, n, conf.level) {
+paired_ci_agresti_min <- function(b, c, n, conf.level,
+                                  side = "two.sided") {
   alpha <- 1 - conf.level
-  z <- stats::qnorm(1 - alpha / 2)
+  z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
   b_star <- b + 0.5
   c_star <- c + 0.5
   n_star <- n + 2
@@ -152,13 +167,29 @@ paired_ci_agresti_min <- function(b, c, n, conf.level) {
   se <- sqrt(n_star * (b_star + c_star) - (b_star - c_star)^2) /
     (n_star * sqrt(n_star))
 
-  truncate_unit(estimate + c(-1, 1) * z * se)
+  ci_bounds(truncate_unit(estimate + c(-1, 1) * z * se), side, c(-1, 1))
 }
 
-paired_ci_score <- function(b, c, n, conf.level, tol = 1e-8, ...) {
+paired_ci_score <- function(b, c, n, conf.level, tol = 1e-8,
+                            side = "two.sided", ...) {
+  if (side != "two.sided") {
+    estimate <- (b - c) / n
+    z <- stats::qnorm(conf.level)
+    signed <- function(delta) {
+      sign(estimate - delta) * paired_score_stat(b, c, n, delta)
+    }
+    target <- if (side == "lower") z else -z
+    objective <- function(delta) signed(delta) - target
+    edges <- c(-1 + tol, 1 - tol)
+    values <- vapply(edges, objective, numeric(1))
+    bound <- if (values[1L] <= 0) -1 else if (values[2L] >= 0) 1 else {
+      stats::uniroot(objective, edges, tol = tol)$root
+    }
+    return(if (side == "lower") c(bound, 1) else c(-1, bound))
+  }
   estimate <- (b - c) / n
   alpha <- 1 - conf.level
-  z <- stats::qnorm(1 - alpha / 2)
+  z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
   statistic <- function(delta) paired_score_stat(b, c, n, delta)
 
   lower <- if (estimate <= -1) {
@@ -189,6 +220,12 @@ paired_ci_score <- function(b, c, n, conf.level, tol = 1e-8, ...) {
 }
 
 paired_score_stat <- function(b, c, n, delta) {
+  difference <- abs((b - c) / n - delta)
+  if (difference == 0) return(0)
+  if (abs(delta) == 1) return(Inf)
+  if (b == n || c == n) {
+    return(difference / sqrt((1 - delta^2) / n))
+  }
   p <- constrained_paired_mle(b, c, n, delta)
   variance <- (p[["p10"]] + p[["p01"]] - delta^2) / n
   if (variance <= 0)

@@ -10,6 +10,8 @@ rate.1s.ci(
   conf.level = 0.95,
   method = c("exact", "score", "wh", "wald", "log"),
   correct = TRUE,
+  side = NULL,
+  alternative = NULL,
   ...
 )
 }
@@ -31,6 +33,14 @@ rate.1s.ci(
 
 \item{correct}{Logical. Apply continuity correction for
 \code{"score"}, \code{"wh"}, and \code{"wald"} methods. Default is TRUE.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
 }

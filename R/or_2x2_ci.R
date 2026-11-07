@@ -3,6 +3,12 @@
 #' Computes confidence intervals for the odds ratio in a 2 x 2 table.
 #'
 #' @param x A 2 x 2 table of non-negative integer counts.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level for the interval.
 #' @param method Method or methods for confidence interval. One or more of
 #'   \code{"wald"}, \code{"gart"}, \code{"cornfield"}, or
@@ -12,6 +18,8 @@
 #' @param ... Reserved for future extensions.
 #'
 #' @details
+#' One-sided BP bounds invert the ordered conditional tail, as for Cornfield.
+#' Mid-p subtracts half the observed probability from that tail.
 #' For a table with entries \eqn{n_{11}}, \eqn{n_{12}}, \eqn{n_{21}}, and
 #' \eqn{n_{22}}, the sample odds ratio is
 #' \eqn{n_{11} n_{22} / (n_{12} n_{21})}.
@@ -66,8 +74,9 @@ or.2x2.ci <- function(
   conf.level = 0.95,
   method = c("wald", "gart", "cornfield", "bp"),
   midp = FALSE,
-  ...
+  side = NULL, alternative = NULL, ...
 ) {
+  side <- resolve_ci_side(side, alternative)$side
   tab <- validate_2x2_table(x)
   if (!is.numeric(conf.level) || length(conf.level) != 1L ||
         !is.finite(conf.level) || conf.level <= 0 || conf.level >= 1) {
@@ -92,10 +101,10 @@ or.2x2.ci <- function(
     methods,
     function(method) {
       if (method %in% names(ci_methods)) {
-        return(ci_methods[[method]](tab, conf.level, ...))
+        return(ci_methods[[method]](tab, conf.level, side = side, ...))
       }
-      if (method == "cornfield") {
-        return(or_ci_cornfield(tab, conf.level, midp = midp, ...))
+      if (method == "cornfield" || side != "two.sided") {
+        return(or_ci_cornfield(tab, conf.level, midp = midp, side = side, ...))
       }
       or_ci_baptista_pike(tab, conf.level, midp = midp, ...)
     }
@@ -116,6 +125,7 @@ or.2x2.ci <- function(
     conf.level = conf.level,
     parameter = "odds ratio",
     data.name = deparse(substitute(x)),
+    side = side,
     null.value = c("odds ratio" = 1)
   )
 }
@@ -141,34 +151,35 @@ odds_ratio_estimate <- function(tab) {
   (a * d) / (b * c)
 }
 
-or_ci_wald <- function(tab, conf.level, ...) {
+or_ci_wald <- function(tab, conf.level, side = "two.sided", ...) {
   if (any(tab == 0)) {
     stop("Wald confidence interval requires all cell counts to be positive.")
   }
 
   alpha <- 1 - conf.level
-  z <- stats::qnorm(1 - alpha / 2)
+  z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
   estimate <- odds_ratio_estimate(tab)
   se <- sqrt(sum(1 / tab))
 
-  exp(log(estimate) + c(-1, 1) * z * se)
+  ci_bounds(exp(log(estimate) + c(-1, 1) * z * se), side)
 }
 
-or_ci_gart <- function(tab, conf.level, ...) {
+or_ci_gart <- function(tab, conf.level, side = "two.sided", ...) {
   tab <- tab + 0.5
   alpha <- 1 - conf.level
-  z <- stats::qnorm(1 - alpha / 2)
+  z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
   estimate <- odds_ratio_estimate(tab)
   se <- sqrt(sum(1 / tab))
 
-  exp(log(estimate) + c(-1, 1) * z * se)
+  ci_bounds(exp(log(estimate) + c(-1, 1) * z * se), side)
 }
 
-or_ci_cornfield <- function(tab, conf.level, midp, tol = 1e-8, ...) {
-  alpha <- 1 - conf.level
+or_ci_cornfield <- function(tab, conf.level, midp, tol = 1e-8,
+                            side = "two.sided", ...) {
+  alpha <- 2 * ci_tail(conf.level, side)
   estimate <- odds_ratio_estimate(tab)
 
-  lower <- if (estimate == 0) {
+  lower <- if (side == "upper" || estimate == 0) {
     0
   } else {
     find_cornfield_limit(
@@ -176,7 +187,7 @@ or_ci_cornfield <- function(tab, conf.level, midp, tol = 1e-8, ...) {
     )
   }
 
-  upper <- if (is.infinite(estimate)) {
+  upper <- if (side == "lower" || is.infinite(estimate)) {
     Inf
   } else {
     find_cornfield_limit(
@@ -206,6 +217,9 @@ find_cornfield_limit <- function(tab, alpha, lower, estimate, midp, tol) {
     }
   } else {
     low <- if (is.finite(estimate)) max(estimate, .Machine$double.eps) else 1
+    while (objective(low) < 0 && low > .Machine$double.xmin * 10) {
+      low <- low / 10
+    }
     high <- low
     while (objective(high) > 0 && high < .Machine$double.xmax / 10) {
       high <- high * 10

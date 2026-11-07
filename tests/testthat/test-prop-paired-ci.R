@@ -57,3 +57,15 @@ test_that("prop.paired.ci supports multiple methods", {
   expect_equal(colnames(result$conf.int), c("lower", "upper"))
   expect_equal(attr(result$conf.int, "conf.level"), 0.95)
 })
+
+test_that("paired score handles completely discordant boundaries", {
+  for (sign in c(-1, 1)) {
+    result <- prop.paired.ci(if (sign > 0) 8 else 0,
+                             if (sign < 0) 8 else 0, 8)
+    z2 <- qnorm(0.975)^2
+    bound <- (8 - z2) / (8 + z2)
+    expected <- if (sign > 0) c(bound, 1) else c(-1, -bound)
+    expect_equal(as.numeric(result$conf.int), expected, tolerance = 1e-4)
+  }
+  expect_error(prop.paired.ci(0, 0, 0, method = "wald"), "positive")
+})

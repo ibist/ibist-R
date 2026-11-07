@@ -7,7 +7,9 @@
 or.paired.ci(
   x,
   conf.level = 0.95,
-  method = c("wald", "wilson", "clopper-pearson", "midp", "blaker")
+  method = c("wald", "wilson", "clopper-pearson", "midp", "blaker"),
+  side = NULL,
+  alternative = NULL
 )
 }
 \arguments{
@@ -22,6 +24,14 @@ and controls in columns, with exposure present first.}
 
 \item{method}{One or more of \code{"wald"} (the default), \code{"wilson"},
 \code{"clopper-pearson"}, \code{"midp"}, or \code{"blaker"}.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 }
 \value{
 An object of class \code{"ibist_ci"} with a matched-pair odds-ratio
@@ -66,6 +76,8 @@ intervals are \code{c(0, Inf)}, and a warning is issued.
 This function estimates a conditional matched-pair odds ratio, not a
 marginal odds ratio or a difference of paired proportions. For the latter,
 use \code{prop.paired.ci()}.
+
+One-sided Blaker bounds use the exact binomial tail.
 }
 \examples{
 twins <- matrix(c(51, 30, 10, 41), nrow = 2, byrow = TRUE)

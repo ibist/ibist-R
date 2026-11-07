@@ -6,6 +6,12 @@
 #'
 #' @param x Length-2 vector of non-negative integer event counts.
 #' @param exposure Length-2 positive numeric vector of exposures.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level. Default is 0.95.
 #' @param method Method or methods for confidence interval. One or more of:
 #'   \itemize{
@@ -64,8 +70,10 @@ rate.2s.ci <- function(
   exposure = c(1.0, 1.0),
   conf.level = 0.95,
   method = c("log", "score", "exact"),
-  ...
+  side = NULL, alternative = NULL, ...
 ) {
+  orientation <- resolve_ci_side(side, alternative)
+  side <- orientation$side
   if (length(x) != 2L || any(!is.finite(x)) ||
       any(x < 0) || any(abs(x - round(x)) > 0)) {
     stop("x must be a length-2 vector of non-negative integers.")
@@ -99,7 +107,8 @@ rate.2s.ci <- function(
   )
   intervals <- lapply(
     methods,
-    function(method) ci_methods[[method]](x, exposure, conf.level, ...)
+    function(method) ci_methods[[method]](
+      x, exposure, conf.level, alternative = orientation$alternative, ...)
   )
 
   new_ibist_ci(
@@ -108,6 +117,7 @@ rate.2s.ci <- function(
                  "rate ratio" = rate_ratio),
     intervals = intervals,
     conf.level = conf.level,
+    side = side,
     parameter = "Poisson rate ratio",
     data.name = paste0(
       "x = c(", x[1], ", ", x[2], "), ",
@@ -134,15 +144,19 @@ ci_rate_ratio_log <- function(x, exposure, conf.level,
          less = c(0, limits[2]))
 }
 
-ci_rate_ratio_score <- function(x, exposure, conf.level, ...) {
-  n <- sum(x)
-  pi_ci <- binom_wilson_ci(x[1], n, conf.level)
-  transform_pi_to_rate_ratio(pi_ci, exposure)
+ci_rate_ratio_score <- function(x, exposure, conf.level,
+                                alternative = "two.sided", ...) {
+  pi_ci <- prop.1s.ci(x[1], sum(x), conf.level = conf.level,
+                      method = "wilson", alternative = alternative)$conf.int
+  transform_pi_to_rate_ratio(as.numeric(pi_ci), exposure)
 }
 
-ci_rate_ratio_exact <- function(x, exposure, conf.level, ...) {
-  pi_ci <- stats::binom.test(x[1], sum(x), conf.level = conf.level)$conf.int
-  transform_pi_to_rate_ratio(pi_ci, exposure)
+ci_rate_ratio_exact <- function(x, exposure, conf.level,
+                                alternative = "two.sided", ...) {
+  pi_ci <- prop.1s.ci(x[1], sum(x), conf.level = conf.level,
+                      method = "clopper-pearson",
+                      alternative = alternative)$conf.int
+  transform_pi_to_rate_ratio(as.numeric(pi_ci), exposure)
 }
 
 binom_wilson_ci <- function(x, n, conf.level) {

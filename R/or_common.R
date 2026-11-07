@@ -8,8 +8,14 @@
 #'   integer counts. Rows are the two groups and columns are the two outcome
 #'   categories.
 #' @param theta The null common odds ratio.
-#' @param alternative A character string specifying the alternative
-#'   hypothesis: \code{"two.sided"}, \code{"greater"}, or \code{"less"}.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative For \code{or.common.test()}, the alternative hypothesis:
+#'   \code{"two.sided"}, \code{"greater"}, or \code{"less"}.
+#'   For \code{or.common.ci()}, a compatibility alias: \code{"greater"}
+#'   selects a lower bound and \code{"less"} an upper bound. Conflicting
+#'   \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level for the interval.
 #' @param algorithm Computational algorithm for the exact confidence interval.
 #'   The default, \code{"network"}, uses dynamic programming. The
@@ -168,8 +174,9 @@ or.common.ci <- function(
   x,
   conf.level = 0.95,
   algorithm = c("network", "convolution"),
-  ...
+  side = NULL, alternative = NULL, ...
 ) {
+  side <- resolve_ci_side(side, alternative)$side
   tables <- validate_stratified_tables(x)
   algorithm <- match.arg(algorithm)
   if (!is.numeric(conf.level) || length(conf.level) != 1L ||
@@ -181,12 +188,12 @@ or.common.ci <- function(
     tables, function(tab) tab[1L, 1L], numeric(1)
   ))
   support <- common_or_support(tables)
-  alpha <- 1 - conf.level
-  lower <- common_or_ci_limit(
-    tables, observed, support, alpha / 2, lower = TRUE, algorithm = algorithm
+  alpha <- ci_tail(conf.level, side)
+  lower <- if (side == "upper") 0 else common_or_ci_limit(
+    tables, observed, support, alpha, lower = TRUE, algorithm = algorithm
   )
-  upper <- common_or_ci_limit(
-    tables, observed, support, alpha / 2, lower = FALSE, algorithm = algorithm
+  upper <- if (side == "lower") Inf else common_or_ci_limit(
+    tables, observed, support, alpha, lower = FALSE, algorithm = algorithm
   )
 
   new_ibist_ci(
@@ -197,6 +204,7 @@ or.common.ci <- function(
     intervals = list(c(lower, upper)),
     conf.level = conf.level,
     parameter = "common odds ratio",
+    side = side,
     data.name = deparse(substitute(x)),
     null.value = c("common odds ratio" = 1)
   )

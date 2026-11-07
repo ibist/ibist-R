@@ -119,3 +119,12 @@ test_that("matched-pair intervals validate their inputs", {
   }
   expect_error(or.paired.ci(tab, method = "fisher"), "arg")
 })
+
+test_that("low-confidence Wilson bounds preserve exact OR boundaries", {
+  lower <- or.paired.ci(matrix(c(5, 4, 0, 6), 2, byrow = TRUE),
+                        method = "wilson", conf.level = 0.2, side = "lower")
+  upper <- or.paired.ci(matrix(c(5, 0, 4, 6), 2, byrow = TRUE),
+                        method = "wilson", conf.level = 0.2, side = "upper")
+  expect_equal(as.numeric(lower$conf.int), c(Inf, Inf))
+  expect_equal(as.numeric(upper$conf.int), c(0, 0))
+})

@@ -5,14 +5,18 @@
 #' @param x Numeric vector of two success counts, or a 2 x 2 table whose
 #'   rows are independent samples and columns are successes and failures.
 #' @param n Numeric vector of two positive sample sizes. Omit for a table.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"newcombe"} (default), \code{"wald"},
 #'   \code{"miettinen-nurminen"}, \code{"mee"}, \code{"agresti-caffo"},
 #'   \code{"brown-li"}, or \code{"chan-zhang"}.
 #' @param correct Logical. Apply continuity correction to Newcombe and Wald
 #'   intervals. Other requested methods are unchanged.
-#' @param alternative One of \code{"two.sided"}, \code{"less"}, or
-#'   \code{"greater"}, referring to the proportion difference.
 #' @param tol Positive numerical tolerance for interval endpoints.
 #' @param nuisance.tol Positive absolute probability tolerance for the
 #'   Chan--Zhang nuisance maximization. Unresolved probabilities within this
@@ -76,7 +80,7 @@
 #'
 #' @return An \code{ibist_ci} object with the observed named \code{estimate},
 #'   a \code{conf.int} matrix with one row per method, \code{conf.level},
-#'   \code{method}, \code{alternative}, and the two \code{sample.proportions}.
+#'   \code{method}, \code{side}, and the two \code{sample.proportions}.
 #' @references
 #' Agresti, A., and Caffo, B. (2000). Simple and effective confidence intervals
 #' for proportions and differences of proportions result from adding two
@@ -110,7 +114,7 @@
 #'             method = c("miettinen-nurminen", "mee"))
 #' prop.2s.ci(c(9, 3), c(10, 10), method = c("newcombe", "brown-li"))
 #' prop.2s.ci(c(9, 3), c(10, 10), method = "chan-zhang")
-#' prop.2s.ci(c(12, 4), c(40, 40), alternative = "greater")
+#' prop.2s.ci(c(12, 4), c(40, 40), side = "lower")
 #' tab <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 #' prop.2s.ci(tab)
 #' @export
@@ -118,10 +122,12 @@ prop.2s.ci <- function(
   x, n = NULL, conf.level = 0.95,
   method = c("newcombe", "wald", "miettinen-nurminen", "mee",
              "agresti-caffo", "brown-li", "chan-zhang"),
-  correct = FALSE, alternative = c("two.sided", "less", "greater"),
-  tol = 1e-8, nuisance.tol = 1e-10
+  correct = FALSE, alternative = NULL,
+  tol = 1e-8, nuisance.tol = 1e-10, side = NULL
 ) {
   counts <- independent_binomial_counts(x, n)
+  orientation <- resolve_ci_side(side, alternative)
+  alternative <- orientation$alternative
   settings <- validate_binomial_ci_settings(conf.level, alternative, tol)
   methods <- if (missing(method)) method[1L] else {
     match.arg(method, several.ok = TRUE)
@@ -183,6 +189,7 @@ prop.2s.ci <- function(
                        "), n = (", paste(counts$n, collapse = ", "), ")"),
     null.value = c("proportion difference" = 0)
   )
+  result$side <- orientation$side
   result$alternative <- settings$alternative
   result$correct <- correct
   result$sample.proportions <- stats::setNames(p, c("prop 1", "prop 2"))

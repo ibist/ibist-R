@@ -11,8 +11,9 @@ prop.1s.ci(
   method = c("wilson", "wald", "agresti-coull", "clopper-pearson", "blaker"),
   correct = FALSE,
   midp = FALSE,
-  alternative = c("two.sided", "less", "greater"),
-  tol = 1e-08
+  alternative = NULL,
+  tol = 1e-08,
+  side = NULL
 )
 }
 \arguments{
@@ -32,16 +33,20 @@ intervals. Other requested methods are unchanged.}
 \item{midp}{Logical. Replace Clopper--Pearson tail probabilities with
 mid-p probabilities. Other requested methods are unchanged.}
 
-\item{alternative}{One of \code{"two.sided"}, \code{"less"}, or
-\code{"greater"}. The latter two request an upper or lower bound,
-respectively.}
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{tol}{Positive numerical tolerance for interval inversion.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
 }
 \value{
 An \code{ibist_ci} object with named \code{estimate}, a
   \code{conf.int} matrix with columns \code{lower} and \code{upper},
-  \code{conf.level}, \code{method}, and \code{alternative}. For vector
+  \code{conf.level}, \code{method}, and \code{side}. For vector
   inputs, rows are ordered by input and then method; \code{inputs} records
   the input index, count, and sample size corresponding to each row.
 }
@@ -77,7 +82,7 @@ uses an adjusted estimate internally.
 prop.1s.ci(5, 40)
 prop.1s.ci(5, 40, method = c("wilson", "clopper-pearson", "blaker"))
 prop.1s.ci(5, 40, method = "clopper-pearson", midp = TRUE)
-prop.1s.ci(5, 40, alternative = "greater")
+prop.1s.ci(5, 40, side = "lower")
 prop.1s.ci(0:5, 40)
 }
 \references{

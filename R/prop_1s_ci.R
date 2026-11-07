@@ -6,6 +6,12 @@
 #' @param x Non-negative integer count or vector of counts of successes.
 #' @param n Positive integer number of trials, either a scalar or a vector
 #'   of the same length as \code{x}.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"wilson"} (default), \code{"wald"},
 #'   \code{"agresti-coull"}, \code{"clopper-pearson"}, or \code{"blaker"}.
@@ -13,9 +19,6 @@
 #'   intervals. Other requested methods are unchanged.
 #' @param midp Logical. Replace Clopper--Pearson tail probabilities with
 #'   mid-p probabilities. Other requested methods are unchanged.
-#' @param alternative One of \code{"two.sided"}, \code{"less"}, or
-#'   \code{"greater"}. The latter two request an upper or lower bound,
-#'   respectively.
 #' @param tol Positive numerical tolerance for interval inversion.
 #'
 #' @details
@@ -44,7 +47,7 @@
 #'
 #' @return An \code{ibist_ci} object with named \code{estimate}, a
 #'   \code{conf.int} matrix with columns \code{lower} and \code{upper},
-#'   \code{conf.level}, \code{method}, and \code{alternative}. For vector
+#'   \code{conf.level}, \code{method}, and \code{side}. For vector
 #'   inputs, rows are ordered by input and then method; \code{inputs} records
 #'   the input index, count, and sample size corresponding to each row.
 #'
@@ -64,16 +67,18 @@
 #' prop.1s.ci(5, 40)
 #' prop.1s.ci(5, 40, method = c("wilson", "clopper-pearson", "blaker"))
 #' prop.1s.ci(5, 40, method = "clopper-pearson", midp = TRUE)
-#' prop.1s.ci(5, 40, alternative = "greater")
+#' prop.1s.ci(5, 40, side = "lower")
 #' prop.1s.ci(0:5, 40)
 #' @export
 prop.1s.ci <- function(
   x, n, conf.level = 0.95,
   method = c("wilson", "wald", "agresti-coull", "clopper-pearson", "blaker"),
   correct = FALSE, midp = FALSE,
-  alternative = c("two.sided", "less", "greater"), tol = 1e-8
+  alternative = NULL, tol = 1e-8, side = NULL
 ) {
   counts <- validate_binomial_counts(x, n)
+  orientation <- resolve_ci_side(side, alternative)
+  alternative <- orientation$alternative
   settings <- validate_binomial_ci_settings(conf.level, alternative, tol)
   alternative <- settings$alternative
   methods <- if (missing(method)) method[1L] else {
@@ -113,6 +118,7 @@ prop.1s.ci <- function(
       paste0("x = ", counts$x, ", n = ", counts$n)
     } else paste(length(counts$x), "binomial samples")
   )
+  result$side <- orientation$side
   result$alternative <- alternative
   result$correct <- correct
   result$midp <- midp
@@ -199,6 +205,12 @@ binomial_ci_limits <- function(x, n, method, tail, correct, midp, tol,
                 if (x == n) 1 else {
                   stats::qbeta(tail, x + 1, n - x, lower.tail = FALSE)
                 })
+  }
+  # A signed Wilson bound beyond a constant response hits the domain edge.
+  # Snap it exactly before odds transformations amplify roundoff near 0/1.
+  if (method == "wilson" && !correct && z < 0) {
+    if (x == n) limits[1L] <- 1
+    if (x == 0) limits[2L] <- 0
   }
   limits <- pmax(0, pmin(1, limits))
   if (alternative == "greater") limits[2L] <- 1

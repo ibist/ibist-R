@@ -18,6 +18,8 @@ or.common.ci(
   x,
   conf.level = 0.95,
   algorithm = c("network", "convolution"),
+  side = NULL,
+  alternative = NULL,
   ...
 )
 
@@ -35,8 +37,11 @@ categories.}
 
 \item{theta}{The null common odds ratio.}
 
-\item{alternative}{A character string specifying the alternative
-hypothesis: \code{"two.sided"}, \code{"greater"}, or \code{"less"}.}
+\item{alternative}{For \code{or.common.test()}, the alternative hypothesis:
+\code{"two.sided"}, \code{"greater"}, or \code{"less"}.
+For \code{or.common.ci()}, a compatibility alias: \code{"greater"}
+selects a lower bound and \code{"less"} an upper bound. Conflicting
+\code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
 
@@ -45,6 +50,10 @@ hypothesis: \code{"two.sided"}, \code{"greater"}, or \code{"less"}.}
 \item{algorithm}{Computational algorithm for the exact confidence interval.
 The default, \code{"network"}, uses dynamic programming. The
 \code{"convolution"} option is retained as an independent check.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
 
 \item{method}{Homogeneity test: \code{"zelen"} (default, exact),
 \code{"breslow-day"}, or \code{"woolf"}. Select one method per call.}

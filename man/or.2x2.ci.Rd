@@ -9,6 +9,8 @@ or.2x2.ci(
   conf.level = 0.95,
   method = c("wald", "gart", "cornfield", "bp"),
   midp = FALSE,
+  side = NULL,
+  alternative = NULL,
   ...
 )
 }
@@ -24,6 +26,14 @@ or.2x2.ci(
 \item{midp}{Logical; should the conditional exact method be modified using
 mid-p probabilities? The default is \code{FALSE}.}
 
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
+
 \item{...}{Reserved for future extensions.}
 }
 \value{
@@ -34,6 +44,8 @@ An object of class \code{"ibist_ci"} containing the common estimate
 Computes confidence intervals for the odds ratio in a 2 x 2 table.
 }
 \details{
+One-sided BP bounds invert the ordered conditional tail, as for Cornfield.
+Mid-p subtracts half the observed probability from that tail.
 For a table with entries \eqn{n_{11}}, \eqn{n_{12}}, \eqn{n_{21}}, and
 \eqn{n_{22}}, the sample odds ratio is
 \eqn{n_{11} n_{22} / (n_{12} n_{21})}.

@@ -8,8 +8,9 @@ rr.2x2.ci(
   x,
   conf.level = 0.95,
   method = c("koopman", "katz"),
-  alternative = c("two.sided", "less", "greater"),
-  tol = 1e-08
+  alternative = NULL,
+  tol = 1e-08,
+  side = NULL
 )
 }
 \arguments{
@@ -21,15 +22,20 @@ Both row totals must be positive.}
 
 \item{method}{One or more of \code{"koopman"} (default) or \code{"katz"}.}
 
-\item{alternative}{One of \code{"two.sided"}, \code{"less"}, or
-\code{"greater"}, referring to the risk ratio.}
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{tol}{Positive numerical tolerance for score inversion.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
 }
 \value{
 An \code{ibist_ci} object containing the observed named
   \code{estimate}, a \code{conf.int} matrix with one row per method,
-  \code{conf.level}, \code{method}, \code{alternative}, and the two
+  \code{conf.level}, \code{method}, \code{side}, and the two
   \code{sample.proportions}.
 }
 \description{
@@ -59,7 +65,7 @@ One-sided intervals have upper limit infinity or lower limit zero.
 vf <- matrix(c(38, 62, 267, 717), nrow = 2, byrow = TRUE)
 rr.2x2.ci(vf)
 rr.2x2.ci(vf, method = c("katz", "koopman"))
-rr.2x2.ci(vf, alternative = "greater")
+rr.2x2.ci(vf, side = "lower")
 }
 \references{
 Katz, D., Baptista, J., Azen, S. P., and Pike, M. C. (1978). Obtaining

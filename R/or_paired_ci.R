@@ -9,6 +9,12 @@
 #'   positive only for the first member and \code{x[2, 1]} the number positive
 #'   only for the second. In a matched case-control study, use cases in rows
 #'   and controls in columns, with exposure present first.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level for the intervals.
 #' @param method One or more of \code{"wald"} (the default), \code{"wilson"},
 #'   \code{"clopper-pearson"}, \code{"midp"}, or \code{"blaker"}.
@@ -49,6 +55,8 @@
 #' marginal odds ratio or a difference of paired proportions. For the latter,
 #' use \code{prop.paired.ci()}.
 #'
+#' One-sided Blaker bounds use the exact binomial tail.
+#'
 #' @return An object of class \code{"ibist_ci"} with a matched-pair odds-ratio
 #'   estimate and one confidence-limit row per requested method.
 #'
@@ -72,7 +80,9 @@
 #' @export
 or.paired.ci <- function(x, conf.level = 0.95,
                          method = c("wald", "wilson", "clopper-pearson",
-                                    "midp", "blaker")) {
+                                    "midp", "blaker"),
+                         side = NULL, alternative = NULL) {
+  side <- resolve_ci_side(side, alternative)$side
   tab <- validate_2x2_table(x)
   if (!is.numeric(conf.level) || length(conf.level) != 1L ||
         !is.finite(conf.level) || conf.level <= 0 || conf.level >= 1) {
@@ -93,8 +103,16 @@ or.paired.ci <- function(x, conf.level = 0.95,
   intervals <- lapply(methods, function(method) {
     if (b + c == 0) return(c(0, Inf))
     if (method == "wald") {
-      z <- stats::qnorm((1 + conf.level) / 2)
-      return(exp(log(b / c) + c(-1, 1) * z * sqrt(1 / b + 1 / c)))
+      z <- stats::qnorm(ci_tail(conf.level, side), lower.tail = FALSE)
+      return(ci_bounds(exp(log(b / c) +
+        c(-1, 1) * z * sqrt(1 / b + 1 / c)), side))
+    }
+    if (side != "two.sided") {
+      binomial <- if (method == "midp") "clopper-pearson" else method
+      probability <- as.numeric(prop.1s.ci(
+        b, b + c, conf.level = conf.level, method = binomial,
+        midp = method == "midp", side = side)$conf.int)
+      return(probability / (1 - probability))
     }
     probability <- paired_or_binomial_ci(b, c, conf.level, method)
     probability / (1 - probability)
@@ -104,6 +122,7 @@ or.paired.ci <- function(x, conf.level = 0.95,
                intervals = intervals, conf.level = conf.level,
                parameter = "matched-pair odds ratio",
                data.name = deparse(substitute(x)),
+               side = side,
                null.value = c("matched-pair odds ratio" = 1))
 }
 

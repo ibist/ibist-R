@@ -10,6 +10,8 @@ prop.paired.ci(
   n,
   conf.level = 0.95,
   method = c("score", "wald", "waldcc", "agresti-min", "wang"),
+  side = NULL,
+  alternative = NULL,
   ...
 )
 }
@@ -18,13 +20,21 @@ prop.paired.ci(
 
 \item{c}{Number of discordant pairs favorable to group 2.}
 
-\item{n}{Total number of matched pairs.}
+\item{n}{Positive total number of matched pairs.}
 
 \item{conf.level}{Confidence level for the interval.}
 
 \item{method}{Method or methods for confidence interval. One or more of
 \code{"score"}, \code{"wald"}, \code{"waldcc"}, \code{"agresti-min"},
 or \code{"wang"}.}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Additional arguments for the selected method. For
 \code{"score"}, these include \code{tol}; for \code{"wang"}, they

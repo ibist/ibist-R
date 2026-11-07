@@ -9,6 +9,8 @@ rate.2s.ci(
   exposure = c(1, 1),
   conf.level = 0.95,
   method = c("log", "score", "exact"),
+  side = NULL,
+  alternative = NULL,
   ...
 )
 }
@@ -25,6 +27,14 @@ rate.2s.ci(
   \item \code{"score"}: Transformed Wilson score interval
   \item \code{"exact"}: Transformed exact Clopper-Pearson interval
 }}
+
+\item{side}{Interval form: \code{"two.sided"} (default),
+\code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{alternative}{Compatibility alias: \code{"two.sided"},
+\code{"greater"} (lower bound), or \code{"less"} (upper bound).
+Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
 }

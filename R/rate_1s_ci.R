@@ -5,6 +5,12 @@
 #'
 #' @param x Non-negative integer. Observed number of events.
 #' @param exposure Positive numeric. Exposure time (or total time at risk).
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
 #' @param conf.level Confidence level. Default is 0.95.
 #' @param method Method or methods for confidence interval. One or more of:
 #'   \itemize{
@@ -81,8 +87,10 @@ rate.1s.ci <- function(
   conf.level = 0.95,
   method = c("exact", "score", "wh", "wald", "log"),
   correct = TRUE,
-  ...
+  side = NULL, alternative = NULL, ...
 ) {
+  orientation <- resolve_ci_side(side, alternative)
+  side <- orientation$side
 
   if (length(x) != 1 || x < 0 || x != floor(x)) {
     stop("x must be a non-negative integer.")
@@ -111,7 +119,8 @@ rate.1s.ci <- function(
   intervals <- lapply(
     methods,
     function(method) {
-      ci_methods[[method]](x, exposure, conf.level, correct, ...)
+      ci_methods[[method]](x, exposure, conf.level, correct,
+                           alternative = orientation$alternative, ...)
     }
   )
 
@@ -120,17 +129,20 @@ rate.1s.ci <- function(
     estimate = c(rate = x / exposure),
     intervals = intervals,
     conf.level = conf.level,
+    side = side,
     parameter = "Poisson rate",
     data.name = paste0("x = ", x, ", exposure = ", exposure)
   )
 }
 
-ci_exact <- function(x, exposure, conf.level, ...) {
-  alpha <- 1 - conf.level
-  lower <- if (x == 0) 0 else stats::qchisq(alpha / 2, 2 * x) /
+ci_exact <- function(x, exposure, conf.level, correct = TRUE,
+                     alternative = "two.sided", ...) {
+  side <- resolve_ci_side(alternative = alternative)$side
+  tail <- ci_tail(conf.level, side)
+  lower <- if (x == 0) 0 else stats::qchisq(tail, 2 * x) /
     (2 * exposure)
-  upper <- qchisq(1 - alpha / 2, 2 * (x + 1)) / (2 * exposure)
-  c(lower, upper)
+  upper <- qchisq(1 - tail, 2 * (x + 1)) / (2 * exposure)
+  ci_bounds(c(lower, upper), side)
 }
 
 ci_score <- function(x, exposure, conf.level, correct = TRUE,
@@ -158,10 +170,12 @@ ci_score <- function(x, exposure, conf.level, correct = TRUE,
          less = c(0, upper))
 }
 
-ci_wh <- function(x, exposure, conf.level, correct = TRUE, ...) {
-  alpha <- 1 - conf.level
-  zL <- qnorm(alpha / 2)
-  zU <- qnorm(1 - alpha / 2)
+ci_wh <- function(x, exposure, conf.level, correct = TRUE,
+                   alternative = "two.sided", ...) {
+  side <- resolve_ci_side(alternative = alternative)$side
+  tail <- ci_tail(conf.level, side)
+  zL <- qnorm(tail)
+  zU <- qnorm(1 - tail)
 
   if (correct) {
     lower_x <- upper_x <- x + 0.5
@@ -178,15 +192,17 @@ ci_wh <- function(x, exposure, conf.level, correct = TRUE, ...) {
 
   upper <- upper_x * (1 - 1 / (9 * upper_x) + zU / (3 * sqrt(upper_x)))^3
 
-  c(lower, upper) / exposure
+  ci_bounds(c(lower, upper) / exposure, side)
 }
 
-ci_wald <- function(x, exposure, conf.level, correct = TRUE, ...) {
-  alpha <- 1 - conf.level
-  z <- qnorm(1 - alpha / 2)
+ci_wald <- function(x, exposure, conf.level, correct = TRUE,
+                   alternative = "two.sided", ...) {
+  side <- resolve_ci_side(alternative = alternative)$side
+  tail <- ci_tail(conf.level, side)
+  z <- qnorm(1 - tail)
 
   if (x == 0 && !correct) {
-    return(c(0, -log(alpha / 2) / exposure))
+    return(ci_bounds(c(0, -log(tail) / exposure), side))
   }
 
   # continuity correction offset
@@ -196,16 +212,18 @@ ci_wald <- function(x, exposure, conf.level, correct = TRUE, ...) {
   upper_x <- x + d
 
   lower <- max(0, (lower_x - z * sqrt(lower_x)) / exposure)
-  upper <- (upper_x + z * sqrt(upper_x)) / exposure
+  upper <- max(0, (upper_x + z * sqrt(upper_x)) / exposure)
 
-  c(lower, upper)
+  ci_bounds(c(lower, upper), side)
 }
 
-ci_log <- function(x, exposure, conf.level, ...) {
-  alpha <- 1 - conf.level
-  z <- qnorm(1 - alpha / 2)
+ci_log <- function(x, exposure, conf.level, correct = TRUE,
+                   alternative = "two.sided", ...) {
+  side <- resolve_ci_side(alternative = alternative)$side
+  tail <- ci_tail(conf.level, side)
+  z <- qnorm(1 - tail)
 
-  if (x == 0) return(c(0, -log(alpha / 2) / exposure))
+  if (x == 0) return(ci_bounds(c(0, -log(tail) / exposure), side))
 
   rate <- x / exposure
   se <- 1 / sqrt(x)
@@ -213,5 +231,5 @@ ci_log <- function(x, exposure, conf.level, ...) {
   lower <- rate * exp(-z * se)
   upper <- rate * exp(z * se)
 
-  c(lower, upper)
+  ci_bounds(c(lower, upper), side)
 }
