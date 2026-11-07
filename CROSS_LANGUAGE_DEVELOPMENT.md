@@ -328,6 +328,48 @@ are `phi = 0.63761827201204579`, `contingency = 0.53762824441746093`, and
 `cramer-v = 0.45086420394816618`; these are retained as regression references
 alongside independent formula checks.
 
+### Ordinal association
+
+`ordinal.assoc()` has the Python counterpart `ordinal_assoc()`, with all
+seven measures selected by default: `gamma`, `tau-b`, `tau-c`, `somers-c|r`,
+`somers-r|c`, `pearson`, and `spearman`. Preserve requested order and
+repetitions. Return `OrdinalAssociationResult`, corresponding to R's
+`ibist_ordinal_assoc`, with named estimates, standard errors, confidence
+limits, statistics, p-values, and concordance metadata. Python uses Series
+for named vectors and a lower/upper DataFrame for intervals. Dotted field
+names use underscores; `measures` corresponds to R's `measure`.
+
+Keep physical row and column order; do not sort category labels. Drop empty
+margins, then require at least two nonempty rows and columns. Validate
+explicit Pearson scores against the original dimensions before subsetting.
+Default Pearson scores use retained numeric labels or category positions.
+Array input has no labels; DataFrame numeric indexes are labels, including
+gaps after dropping empty categories. Spearman uses marginal midranks,
+including their estimated-margin contribution to sampling variances.
+
+The five concordance measures share `S/sqrt(var.S)`. Pearson and Spearman
+use their own multinomial null variances; do not substitute continuous-normal
+correlation inference or the separate CMH linear-by-linear test. Match R's
+`alternative` and `conf.level` defaults. Intervals use estimation variances:
+two-sided Wald intervals are untruncated; one-sided finite bounds are clipped
+to [-1, 1], with the other endpoint at 1 or -1. Zero null variance produces
+missing tests. These combined estimation/test functions retain `alternative`
+without adding the CI-only `side` argument.
+
+Python sums integer pair counts exactly and uses centered influence
+variances to reduce cancellation. Category score rescaling avoids overflow
+and underflow without changing correlations. Independent tests enumerate
+pairs, differentiate estimands under multinomial sampling, reproduce all
+seven measures in the SAS pain example, and check reversal, transposition,
+replication, empty margins, score choices, and numerical boundaries.
+`data-raw/export-python-ordinal-reference.R` adds 222 R comparison cases.
+Use `2e-9` relative tolerance with no absolute allowance for p-values;
+other fields allow `1e-11` absolute error. R's cancellation near perfect
+association can leave standard errors near `1e-9`; allow `1e-8` absolute
+error for those near-zero standard errors and `3e-8` for affected intervals.
+Statistical references remain those in R's help; Brown and Benedetti (1977)
+and the primary SAS example were checked while implementing the translation.
+
 ### Odds-ratio homogeneity tests
 
 `or.homogeneity.test(x, method = c("zelen", "breslow-day", "woolf"),
