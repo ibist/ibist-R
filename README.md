@@ -20,6 +20,12 @@ Cramer's V as descriptive point estimates. Use `measure = "cramer-v"` to
 select one measure. Phi is non-negative for all table sizes and can exceed
 one for larger tables; Cramer's V is normalized between zero and one.
 
+`or.homogeneity.test(x)` retains Zelen's exact test as its default.
+Use `method = "breslow-day"` or `method = "woolf"` for asymptotic tests
+of equal stratum-specific odds ratios. Breslow--Day supports Tarone's
+adjustment through `correct = TRUE`. Woolf automatically adds 0.5 to all
+cells across all strata if any cell is zero, matching DescTools.
+
 ## Development
 
 The latest version of the package is under development at

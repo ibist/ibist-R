@@ -1,7 +1,8 @@
-#' Exact Inference for Stratified 2 x 2 Tables
+#' Inference for Stratified 2 x 2 Tables
 #'
-#' Computes an exact conditional test or confidence interval for a common
-#' odds ratio across a collection of 2 x 2 tables.
+#' Computes exact conditional tests and confidence intervals for a common
+#' odds ratio, and exact or asymptotic tests of homogeneity, across a
+#' collection of 2 x 2 tables.
 #'
 #' @param x A list of 2 x 2 tables, or a 2 x 2 x K array of non-negative
 #'   integer counts. Rows are the two groups and columns are the two outcome
@@ -13,6 +14,11 @@
 #' @param algorithm Computational algorithm for the exact confidence interval.
 #'   The default, \code{"network"}, uses dynamic programming. The
 #'   \code{"convolution"} option is retained as an independent check.
+#' @param method Homogeneity test: \code{"zelen"} (default, exact),
+#'   \code{"breslow-day"}, or \code{"woolf"}. Select one method per call.
+#' @param correct Logical. Apply Tarone's adjustment to the Breslow--Day
+#'   statistic. Default is \code{FALSE}. Setting this to \code{TRUE} for
+#'   another method is an error. This is not Yates' continuity correction.
 #' @param ... Reserved for future extensions.
 #'
 #' @details
@@ -24,21 +30,47 @@
 #' truncated at one. The confidence interval is obtained by inverting these
 #' one-sided exact tests.
 #'
-#' \code{or.homogeneity.test()} performs Zelen's exact test of
-#' \eqn{H_0: \theta_1 = \cdots = \theta_K}. It conditions on the observed sum
+#' \code{or.homogeneity.test()} tests
+#' \eqn{H_0: \theta_1 = \cdots = \theta_K}. Its default, Zelen's exact test,
+#' conditions on the observed sum
 #' of the upper-left cells, which removes the unspecified common odds ratio
 #' from the null distribution. The two-sided p-value uses probability
 #' ordering.
 #'
-#' All three procedures are exact conditional procedures; none is an
-#' asymptotic alternative. The first two procedures test or estimate a common
-#' odds ratio. The homogeneity procedure tests whether the stratum-specific
-#' odds ratios are
-#' equal, without specifying their common value.
+#' The Breslow--Day method estimates the common odds ratio by the
+#' Mantel--Haenszel estimator. In each stratum it fits cell counts with the
+#' observed margins and that odds ratio. If \eqn{a_k} and \eqn{A_k} are the
+#' observed and fitted upper-left counts, and \eqn{V_k} is the reciprocal
+#' of the sum of reciprocals of the four fitted counts, the statistic is
+#' \eqn{\sum_k(a_k-A_k)^2/V_k}. Tarone's adjustment subtracts
+#' \eqn{\{\sum_k(a_k-A_k)\}^2/\sum_k V_k}.
+#'
+#' The Woolf method uses stratum log odds ratios \eqn{l_k} with weights
+#' \eqn{w_k=1/\sum_{ij}(1/n_{kij})}. Its statistic is
+#' \eqn{\sum_k w_k(l_k-\bar l_w)^2}. To match \code{DescTools::WoolfTest()},
+#' if any observed cell is zero, 0.5 is added to every cell in every stratum
+#' before computing the log odds ratios and weights. This automatic
+#' zero-cell adjustment is separate from the \code{correct} argument.
+#'
+#' Both asymptotic methods use the upper tail of a chi-squared distribution
+#' with \eqn{K-1} degrees of freedom and require at least two strata with
+#' positive row and column totals. Breslow--Day additionally requires a
+#' finite positive Mantel--Haenszel odds-ratio estimate. A warning is issued
+#' if a Breslow--Day fitted count, or a Woolf adjusted observed count, is
+#' below 5. These approximations may be unreliable for sparse tables;
+#' consider the exact Zelen method. Empty margins are rejected, not dropped.
+#'
+#' The common-odds-ratio test and interval remain exact conditional
+#' procedures. The homogeneity tests assess equality of stratum-specific
+#' odds ratios without specifying their common value.
 #'
 #' @return \code{or.common.test()} returns an object of class \code{"htest"}.
 #'   \code{or.common.ci()} returns an object of class \code{"ibist_ci"}.
 #'   \code{or.homogeneity.test()} returns an object of class \code{"htest"}.
+#'   For the homogeneity test, \code{statistic} is the total upper-left count
+#'   and \code{parameter} is the number of strata for Zelen's method; for
+#'   asymptotic methods they are the chi-squared statistic and degrees of
+#'   freedom. The alternative is always \code{"two.sided"}.
 #'
 #' @references
 #' Jung, S. H., Biggerstaff, B. J., and Kim, C. (2014). A class of exact
@@ -64,6 +96,9 @@
 #' or.common.test(tabs)
 #' or.common.ci(tabs)
 #' or.homogeneity.test(tabs)
+#' or.homogeneity.test(tabs, method = "breslow-day")
+#' or.homogeneity.test(tabs, method = "breslow-day", correct = TRUE)
+#' or.homogeneity.test(tabs, method = "woolf")
 #'
 #' @name or.common
 NULL
@@ -152,8 +187,26 @@ or.common.ci <- function(
 
 #' @rdname or.common
 #' @export
-or.homogeneity.test <- function(x, ...) {
+or.homogeneity.test <- function(
+  x,
+  method = c("zelen", "breslow-day", "woolf"),
+  correct = FALSE,
+  ...
+) {
+  method <- match.arg(method)
+  if (!is.logical(correct) || length(correct) != 1L || is.na(correct)) {
+    stop("'correct' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (correct && method != "breslow-day") {
+    stop("'correct = TRUE' is only available for the Breslow-Day method.",
+         call. = FALSE)
+  }
   tables <- validate_stratified_tables(x)
+  if (method != "zelen") {
+    return(asymptotic_or_homogeneity(
+      tables, method, correct, paste(deparse(substitute(x)), collapse = "\n")
+    ))
+  }
   observed <- sum(vapply(
     tables, function(tab) tab[1L, 1L], numeric(1)
   ))
@@ -170,6 +223,84 @@ or.homogeneity.test <- function(x, ...) {
     ),
     class = "htest"
   )
+}
+
+asymptotic_or_homogeneity <- function(tables, method, correct, data.name) {
+  if (length(tables) < 2L) {
+    stop("Asymptotic homogeneity tests require at least two strata.",
+         call. = FALSE)
+  }
+  counts <- vapply(tables, as.numeric, numeric(4))
+  valid <- vapply(tables, function(tab) {
+    all(is.finite(tab)) && is.finite(sum(tab)) &&
+      all(rowSums(tab) > 0) && all(colSums(tab) > 0)
+  }, logical(1))
+  if (!all(valid)) {
+    stop("Each stratum must have finite counts and positive row and ",
+         "column totals.",
+         call. = FALSE)
+  }
+  if (method == "woolf") {
+    if (any(counts == 0)) counts <- counts + 0.5
+    log.or <- log(counts[1L, ]) + log(counts[4L, ]) -
+      log(counts[2L, ]) - log(counts[3L, ])
+    weights <- 1 / colSums(1 / counts)
+    pooled <- sum(weights * log.or) / sum(weights)
+    statistic <- sum(weights * (log.or - pooled)^2)
+    sparse <- any(counts < 5)
+    description <- "Woolf test of homogeneity of odds ratios"
+  } else {
+    totals <- colSums(counts)
+    theta <- sum(counts[1L, ] * counts[4L, ] / totals) /
+      sum(counts[2L, ] * counts[3L, ] / totals)
+    if (!is.finite(theta) || theta <= 0) {
+      stop("Breslow-Day requires a finite positive Mantel-Haenszel odds ratio;",
+           " consider method = 'zelen'.", call. = FALSE)
+    }
+    fitted <- vapply(seq_along(tables), function(i) {
+      # Solve the fixed-margin odds-ratio equation on a probability scale.
+      r <- (counts[1L, i] + counts[3L, i]) / totals[i]
+      c <- (counts[1L, i] + counts[2L, i]) / totals[i]
+      if (theta == 1) {
+        a <- r * c
+      } else {
+        b <- 1 + (theta - 1) * (r + c)
+        discriminant <- max(0, b^2 + 4 * (1 - theta) * theta * r * c)
+        signed.root <- if (b >= 0) sqrt(discriminant) else -sqrt(discriminant)
+        q <- -0.5 * (b + signed.root)
+        roots <- c(q / (1 - theta), -theta * r * c / q)
+        lower <- max(0, r + c - 1)
+        upper <- min(r, c)
+        roots <- roots[is.finite(roots) & roots > lower & roots < upper]
+        if (length(roots) != 1L) {
+          stop("Could not fit positive Breslow-Day cell counts.", call. = FALSE)
+        }
+        a <- roots[[1L]]
+      }
+      c(a, c - a, r - a, 1 - r - c + a) * totals[i]
+    }, numeric(4))
+    if (any(!is.finite(fitted)) || any(fitted <= 0)) {
+      stop("Could not fit positive Breslow-Day cell counts.", call. = FALSE)
+    }
+    variance <- 1 / colSums(1 / fitted)
+    difference <- counts[1L, ] - fitted[1L, ]
+    statistic <- sum(difference^2 / variance)
+    if (correct) statistic <- statistic - sum(difference)^2 / sum(variance)
+    sparse <- any(fitted < 5)
+    description <- paste0("Breslow-Day test of homogeneity of odds ratios",
+                          if (correct) " with Tarone adjustment" else "")
+  }
+  if (sparse) {
+    warning("Chi-squared approximation may be incorrect: ",
+            "some cell counts are below 5.",
+            call. = FALSE)
+  }
+  statistic <- max(0, statistic)
+  df <- length(tables) - 1L
+  structure(list(statistic = c("X-squared" = statistic), parameter = c(df = df),
+                 p.value = stats::pchisq(statistic, df, lower.tail = FALSE),
+                 alternative = "two.sided", method = description,
+                 data.name = data.name), class = "htest")
 }
 
 validate_theta <- function(theta) {

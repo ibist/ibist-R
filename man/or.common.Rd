@@ -5,7 +5,7 @@
 \alias{or.common.test}
 \alias{or.common.ci}
 \alias{or.homogeneity.test}
-\title{Exact Inference for Stratified 2 x 2 Tables}
+\title{Inference for Stratified 2 x 2 Tables}
 \usage{
 or.common.test(
   x,
@@ -21,7 +21,12 @@ or.common.ci(
   ...
 )
 
-or.homogeneity.test(x, ...)
+or.homogeneity.test(
+  x,
+  method = c("zelen", "breslow-day", "woolf"),
+  correct = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{A list of 2 x 2 tables, or a 2 x 2 x K array of non-negative
@@ -40,15 +45,27 @@ hypothesis: \code{"two.sided"}, \code{"greater"}, or \code{"less"}.}
 \item{algorithm}{Computational algorithm for the exact confidence interval.
 The default, \code{"network"}, uses dynamic programming. The
 \code{"convolution"} option is retained as an independent check.}
+
+\item{method}{Homogeneity test: \code{"zelen"} (default, exact),
+\code{"breslow-day"}, or \code{"woolf"}. Select one method per call.}
+
+\item{correct}{Logical. Apply Tarone's adjustment to the Breslow--Day
+statistic. Default is \code{FALSE}. Setting this to \code{TRUE} for
+another method is an error. This is not Yates' continuity correction.}
 }
 \value{
 \code{or.common.test()} returns an object of class \code{"htest"}.
   \code{or.common.ci()} returns an object of class \code{"ibist_ci"}.
   \code{or.homogeneity.test()} returns an object of class \code{"htest"}.
+  For the homogeneity test, \code{statistic} is the total upper-left count
+  and \code{parameter} is the number of strata for Zelen's method; for
+  asymptotic methods they are the chi-squared statistic and degrees of
+  freedom. The alternative is always \code{"two.sided"}.
 }
 \description{
-Computes an exact conditional test or confidence interval for a common
-odds ratio across a collection of 2 x 2 tables.
+Computes exact conditional tests and confidence intervals for a common
+odds ratio, and exact or asymptotic tests of homogeneity, across a
+collection of 2 x 2 tables.
 }
 \details{
 Conditional on the margins of every stratum, the upper-left cell in each
@@ -59,17 +76,39 @@ the Jung et al. (2014) rule
 truncated at one. The confidence interval is obtained by inverting these
 one-sided exact tests.
 
-\code{or.homogeneity.test()} performs Zelen's exact test of
-\eqn{H_0: \theta_1 = \cdots = \theta_K}. It conditions on the observed sum
+\code{or.homogeneity.test()} tests
+\eqn{H_0: \theta_1 = \cdots = \theta_K}. Its default, Zelen's exact test,
+conditions on the observed sum
 of the upper-left cells, which removes the unspecified common odds ratio
 from the null distribution. The two-sided p-value uses probability
 ordering.
 
-All three procedures are exact conditional procedures; none is an
-asymptotic alternative. The first two procedures test or estimate a common
-odds ratio. The homogeneity procedure tests whether the stratum-specific
-odds ratios are
-equal, without specifying their common value.
+The Breslow--Day method estimates the common odds ratio by the
+Mantel--Haenszel estimator. In each stratum it fits cell counts with the
+observed margins and that odds ratio. If \eqn{a_k} and \eqn{A_k} are the
+observed and fitted upper-left counts, and \eqn{V_k} is the reciprocal
+of the sum of reciprocals of the four fitted counts, the statistic is
+\eqn{\sum_k(a_k-A_k)^2/V_k}. Tarone's adjustment subtracts
+\eqn{\{\sum_k(a_k-A_k)\}^2/\sum_k V_k}.
+
+The Woolf method uses stratum log odds ratios \eqn{l_k} with weights
+\eqn{w_k=1/\sum_{ij}(1/n_{kij})}. Its statistic is
+\eqn{\sum_k w_k(l_k-\bar l_w)^2}. To match \code{DescTools::WoolfTest()},
+if any observed cell is zero, 0.5 is added to every cell in every stratum
+before computing the log odds ratios and weights. This automatic
+zero-cell adjustment is separate from the \code{correct} argument.
+
+Both asymptotic methods use the upper tail of a chi-squared distribution
+with \eqn{K-1} degrees of freedom and require at least two strata with
+positive row and column totals. Breslow--Day additionally requires a
+finite positive Mantel--Haenszel odds-ratio estimate. A warning is issued
+if a Breslow--Day fitted count, or a Woolf adjusted observed count, is
+below 5. These approximations may be unreliable for sparse tables;
+consider the exact Zelen method. Empty margins are rejected, not dropped.
+
+The common-odds-ratio test and interval remain exact conditional
+procedures. The homogeneity tests assess equality of stratum-specific
+odds ratios without specifying their common value.
 }
 \examples{
 tabs <- list(
@@ -79,6 +118,9 @@ tabs <- list(
 or.common.test(tabs)
 or.common.ci(tabs)
 or.homogeneity.test(tabs)
+or.homogeneity.test(tabs, method = "breslow-day")
+or.homogeneity.test(tabs, method = "breslow-day", correct = TRUE)
+or.homogeneity.test(tabs, method = "woolf")
 
 }
 \references{

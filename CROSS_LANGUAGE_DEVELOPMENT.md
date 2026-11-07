@@ -142,6 +142,56 @@ are `phi = 0.63761827201204579`, `contingency = 0.53762824441746093`, and
 `cramer-v = 0.45086420394816618`; these are retained as regression references
 alongside independent formula checks.
 
+### Odds-ratio homogeneity tests
+
+`or.homogeneity.test(x, method = c("zelen", "breslow-day", "woolf"),
+correct = FALSE)` selects one method per call and preserves Zelen's exact
+test as the default. The planned Python counterpart is
+`or_homogeneity_test()`, with the same method names and correction policy.
+Python parity remains pending; book changes remain deferred until after
+the final exam.
+
+All methods accept a list of 2 x 2 count tables or a 2 x 2 x K count array.
+The two asymptotic methods require at least two strata and positive row
+and column margins in every stratum; reject empty margins rather than
+silently dropping strata. The existing exact method's behavior is unchanged.
+
+- Breslow--Day uses the Mantel--Haenszel common odds ratio, fits each
+  stratum's cell counts under that odds ratio and the observed margins,
+  and sums squared upper-left residuals divided by their fitted variances.
+  Each variance is the reciprocal of the sum of reciprocals of the four
+  fitted counts. Require a finite positive MH estimate; otherwise suggest
+  the exact method. Solve the fitted-count quadratic stably, including
+  the linear case when the MH estimate is exactly one.
+- `correct = TRUE` requests Tarone's adjustment for Breslow--Day, subtracting
+  the squared sum of upper-left residuals divided by the sum of their
+  variances. This is not a continuity correction. Reject this flag for
+  Zelen and Woolf rather than silently ignoring it.
+- Woolf uses the inverse-variance weighted dispersion of stratum log odds
+  ratios. Each variance is the sum of reciprocals of the four cell counts.
+  To match DescTools, if any cell is zero, add 0.5 to every cell in every
+  stratum before computing the log odds ratios and variances. This adjustment
+  is automatic and independent of the `correct` flag.
+- Both asymptotic methods return an `htest` with a chi-squared `statistic`,
+  `parameter` named `df` equal to K - 1, an upper-tail `p.value`, a two-sided
+  alternative, test description, and input description. Use the survival
+  function directly to retain very small p-values. Warn if any fitted
+  Breslow--Day cell or adjusted Woolf cell is below 5. Retain Zelen's existing
+  statistic, parameter, and exact p-value structure.
+
+Validate against independent common-OR-one and two-stratum Woolf formulas,
+the book's postpartum-haemorrhage example, direct DescTools comparisons,
+and transposition, simultaneous row reversal, and stratum permutation.
+DescTools is a development comparison only, not a package dependency.
+
+Direct comparisons with DescTools 0.99.60 covered 303 sets of strata,
+including the book example, a common odds ratio exactly equal to one,
+a zero-cell example, and 300 seeded random sets of 2 through 5 strata.
+Breslow--Day, Tarone-adjusted Breslow--Day, and Woolf all agreed: maximum
+absolute statistic differences were below `3e-11` and p-value differences
+below `1.1e-13`. Retain the book's reference results in the regression tests
+alongside independent formula checks.
+
 ### Numerical foundations and results
 
 Use NumPy and SciPy for numerical building blocks. Add dependencies when the
