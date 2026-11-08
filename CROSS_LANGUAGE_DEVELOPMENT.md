@@ -328,6 +328,48 @@ are `phi = 0.63761827201204579`, `contingency = 0.53762824441746093`, and
 `cramer-v = 0.45086420394816618`; these are retained as regression references
 alongside independent formula checks.
 
+### Unified association tests
+
+`assoc.test()` and `assoc_test()` accept one or more measures and one method
+for the whole call. Defaults are Pearson score correlation, multinomial
+inference, two-sided alternatives, and confidence level 0.95. Existing
+functions and book examples retain their interfaces without deprecation.
+Agreement and trend interfaces are separately planned.
+
+- `method="pearson"` supports nominal `phi`, `contingency`, and `cramer-v`,
+  sharing one Pearson independence test. Estimates use the uncorrected
+  statistic even when `correct=TRUE`/`True` requests the 2 x 2 capped Yates
+  correction for testing. Only two-sided, directionless independence tests
+  are supported; scores and empty margins are rejected. No coefficient CI
+  is supplied. Small expected counts warn once per call.
+- `method="multinomial"` supports all seven ordinal measures and preserves
+  the existing ordinal estimates, estimation standard errors, intervals,
+  null variances, tails, and score rules. The five concordance-based
+  measures share a test. Pearson and Spearman have separate null variances.
+- `method="cmh"` supports Pearson and Spearman, with signed Z=r*sqrt(n-1)
+  and its square in `chisq`. No CI or estimation standard error is supplied;
+  do not substitute the multinomial null variance. Scores must be supplied
+  for both axes and affect Pearson only, including mixed requests. Reject
+  scores for Spearman-only CMH calls. Ordinal methods drop empty margins.
+
+Reject incompatible combinations, including nominal/ordinal mixtures;
+never select different methods silently. Confidence levels are validated
+for all methods but used only for multinomial intervals. One measure,
+including a length-one vector/sequence, returns an htest/TestResult. Add
+`measure` and `test.method`/`test_method` identifiers; standard errors and
+CMH squares are method-specific optional fields. Null coefficients are zero.
+
+Multiple measures return an ordered list/sequence preserving repetitions:
+R's `ibist_assoc_tests` and Python's `AssociationTestResults`. Provide native
+individual tests and a full-precision combined table, with shared-test groups
+identified in metadata and printing. State that p-values are unadjusted and
+tests use the same observations. Python's new optional TestResult fields
+are appended, preserving existing positional arguments and defaults.
+Independent tests check Pearson/Yates formulas, expanded score correlations,
+CMH normal tails, the primary SAS example, invalid combinations, preserved
+legacy results, and tiny p-values. The R exporter adds 274 comparison calls;
+tolerances follow the ordinal specification below. Book edits remain deferred.
+
 ### Ordinal association
 
 `ordinal.assoc()` has the Python counterpart `ordinal_assoc()`, with all
