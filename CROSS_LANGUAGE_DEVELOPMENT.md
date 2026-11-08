@@ -480,8 +480,46 @@ See [published rate-power validation](RATE_POWER_VALIDATION.md) for inputs,
 sources, numerical comparisons, and the limits of this external check.
 One-sample solved parameters allow 2e-8 absolute error; exact null size
 derived from a fitted p0 allows 5e-8 because it inherits root-finding error.
-Logistic goodness of fit and CLT helper names
-remain open for discussion; do not rename or translate them yet.
+The CLT helper name remains open for discussion; do not translate it yet.
+
+### GLM goodness of fit
+
+The agreed names are glm.gof() and glm_gof(), with the fitted model first.
+Pearson and deviance support binomial and Poisson GLMs; Hosmer-Lemeshow,
+Osius-Rojek, and Stukel require binomial logit models. One method returns
+htest/TestResult, multiple methods return ordered ibist_glm_gof_tests /
+GLMGOFResults collections. Preserve order and repetitions; p-values are
+unadjusted. Default method is pearson; g=10 controls only Hosmer-Lemeshow.
+
+Use integer counts/trial/frequency weights, grouped by identical design
+rows AND offsets. Exclude zero-weight rows, including their boundary
+predictions. Reject unsupported families, estimated dispersion, missing
+retained inputs, and active boundary means. No automatic pooling or method
+switching occurs. R's logistic.gof() retains its original implementation
+and output; pooling rules are not transferred into the new interface.
+
+All five methods are asymptotic. Use actual groups and estimable rank;
+Hosmer-Lemeshow uses SAS target-frequency groups and probability ties at
+14 significant digits. Osius-Rojek uses SAS J-centering. Stukel uses an
+efficient score test, not an augmented likelihood-ratio fit, and accounts
+for a rank-one increment when necessary. Column-scaled SVD uses 1e-10
+relative tolerance; standardizing variances <=1e-12 are numerically zero.
+
+Support asymcheck(glm.gof/glm_gof, fit, ...) without computing test
+statistics and asymcheck(result) after inference. Optional asymcheck=TRUE
+attaches the same diagnostics. Retain diagnostic inputs independently of
+the visible flag and never retain the full fit. Pre-checks report
+unestimable df or standardization; inference rejects those tests. Report
+convergence, rank, fitted boundary distance, both expected binomial outcome
+counts, actual risk groups, and method-specific standardization conditions.
+
+Python consumes statsmodels GLM results and requires statsmodels>=0.14.
+Its new TestResult fields are appended for positional compatibility.
+Published SAS examples validate all five logistic methods, grouped
+binomial responses, and Poisson offsets; eight R cases and independent
+formula/score checks cover interfaces and numerical behavior. See
+[GLM GOF validation](GLM_GOF_VALIDATION.md) for sources, variants, data
+preparation, numerical tolerances, and limits of the evidence.
 
 ### Shared approximation diagnostics
 
