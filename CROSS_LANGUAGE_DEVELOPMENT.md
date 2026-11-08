@@ -447,6 +447,37 @@ designs, independently summed binomial rejection regions, and 30 R cases.
 Allow 2e-4 absolute tolerance for solved parameters because R's two-sample
 root tolerance is eps^0.25. Broader validation remains reserved for a push.
 
+`power.r1s.test()` / `power_r1s_test()` and `power.r2s.test()` /
+`power_r2s_test()` add normal-approximation Poisson rate planning. Omit
+exactly one of n, relevant rates, power, or significance level. Exposure
+is fixed per-subject follow-up; total exposure is n times follow-up.
+Two-sample group.rate/group_rate is n2/n1, independently of follow-up;
+exposure accepts a shared scalar or separate group values. Both supplied
+and solved n remain continuous. Results retain rates, exposure, allocation,
+level, power, alternative, method, and note in power.htest/PowerResult.
+
+Use rate.test() score boundaries and the alternative Poisson variance.
+Two-sample null variance uses the exposure-weighted expected pooled rate;
+this replaces the test's random pooled rate for planning. Help pages give
+the full derivation. Defaults match proportion power: correction and strict
+are false, level is .05. Strict includes both two-sided tails. One-sample
+alternatives are two.sided/less/greater; two-sample alternatives are
+two.sided/one.sided, using the absolute difference. These are approximate
+normal calculations, not exact Poisson or conditional-test power.
+
+Positive inverses use log coordinates within 100 doublings/halvings from
+1 for n or the other rate; level uses logit coordinates of magnitude at
+most 36. Default root tolerance is sqrt(eps). Prefer r1 above r0 or r0
+below r1 for one sample (reverse for less), and r1 below r2 or r2 above r1
+for two samples; try the other branch if needed. Reject equal-rate sample
+size designs and unattainable targets. Focused checks use closed-form
+sample sizes, inverse recovery, unit/allocation invariance, and 19 R
+cases, with 5e-8 relative or 1e-10 absolute comparison tolerance.
+Published Minitab examples additionally verify four powers at 5e-7
+absolute tolerance and two rounded sample sizes in both languages. Match
+the uncorrected normal method and request strict two-sided power.
+See [published rate-power validation](RATE_POWER_VALIDATION.md) for inputs,
+sources, numerical comparisons, and the limits of this external check.
 One-sample solved parameters allow 2e-8 absolute error; exact null size
 derived from a fitted p0 allows 5e-8 because it inherits root-finding error.
 Logistic goodness of fit, Mantel--Haenszel diagnostic, and CLT helper names
