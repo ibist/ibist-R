@@ -70,7 +70,9 @@
 #'   the standard one-sided approximation. The default is \code{FALSE},
 #'   matching \code{stats::power.prop.test()}.
 #' @param tol Numerical tolerance used in root finding.
-#' @param max_n Maximum allowable sample size when solving for \code{n}.
+#' @param max_n Maximum sample size for exact designs. For normal designs,
+#'   this is the initial upper root bracket, which may be extended, matching
+#'   the existing normal-solver behavior.
 #' @param size.rule Character string specifying the rule used to select
 #'   the sample size when \code{exact = TRUE}. Must be one of
 #'   \code{"close"} (default) or \code{"minimal"}.
@@ -391,43 +393,28 @@ power.p1s.test <- function(
               }
           }
           
-          ## ---- exponential bracketing + integer bisection ----
-          ## n_lo <- 1L
-          ## if (feasible(n_lo)) {
-          ##     n <- n_lo
-          ## } else {
-          ##     n_hi <- 2L
-          ##     while (!feasible(n_hi)) {
-          ##         n_lo <- n_hi
-          ##         n_hi <- n_hi * 2L
-          ##         if (n_hi > max_n)
-          ##             stop("Required n exceeds 'max_n'", call. = FALSE)
-          ##     }
-          ##     while (n_hi - n_lo > 1L) {
-          ##         n_mid <- (n_lo + n_hi) %/% 2L
-          ##         if (feasible(n_mid)) n_hi <- n_mid else n_lo <- n_mid
-          ##     }
-          ##     n <- n_hi
-          ## }
-          
-          ## Step 1: monotone search
-          hi <- 10
-          while (power_at_n(hi) < power) {
-              hi <- hi * 2
-              if (hi > max_n) {
-                  stop("Required n exceeds 'max_n'", call. = FALSE)
-              }
-          }
-          
-          ## Step 2: local scan
-          n_seq <- seq.int(max(1, hi/2), min(max_n, hi * 2))
-          feas <- vapply(n_seq, feasible, logical(1))
-          if (!any(feas)) {
-              stop("No feasible n found; consider size.rule = 'minimal' or a smaller alpha.min.frac",
+          # Exact power and achieved size are not monotone in n.
+          # Scan in order to honor both minimality and the max_n bound.
+          impossible <- p1 == p0 ||
+              (alternative == "greater" && p1 < p0) ||
+              (alternative == "less" && p1 > p0)
+          if (impossible && power > sig.level) {
+              stop("Target power is unattainable in the specified direction",
                    call. = FALSE)
           }
-          n <- n_seq[min(which(feas))]
-          power <- power_at_n(n)
+          found <- FALSE
+          for (nn in seq_len(max_n)) {
+              if (feasible(nn)) {
+                  n <- nn
+                  power <- power_at_n(n)
+                  found <- TRUE
+                  break
+              }
+          }
+          if (!found) {
+              stop("No feasible n up to 'max_n'; consider size.rule = ",
+                   "'minimal' or a smaller alpha.min.frac", call. = FALSE)
+          }
       }
   }
 

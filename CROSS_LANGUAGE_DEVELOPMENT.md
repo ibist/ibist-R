@@ -411,6 +411,47 @@ relative tolerance with no absolute allowance for p-values; ordinary
 estimates/statistics allow `1e-11` absolute error. Near-zero standard errors
 allow `1e-8`, intervals `3e-8`, and serialized weight matrices `1e-15`.
 
+### Trend and power
+
+`trend.test()` / `trend_test()` provide asymptotic and exact conditional
+Cochran--Armitage inference. Keep `ca.trend.test()` supported. Rows are
+ordered groups, column one contains events, scores default to original row
+positions, and empty rows drop after score assignment. Return signed Z,
+its square, the raw score statistic, p-value, alternative, and description.
+Exact tails are inclusive and two-sided p-values double the smaller tail.
+Python follows R's 15-significant-digit score merging and tie tolerance,
+with a one-million-state resource limit absent from R's legacy backend.
+
+`power_p1s_test()` and `power_p2s_test()` mirror the existing R proportion
+power functions. Exactly one of n, relevant proportions, power, or
+significance level is omitted. `PowerResult` follows `power.htest` fields,
+translating dots to underscores. Preserve correction/strict defaults,
+alternative names, root tolerances, and first-group allocation semantics.
+Supplied one-sample n is rounded up; normal solved n and two-sample n
+remain continuous. Exact one-sample methods are quantile, deterministic
+midp, randomized midp-rand boundaries, and inclusive cp rejection.
+
+The R exact sample-size search was corrected before translation: scan from
+one in order, honor max_n, and check actual size plus target power. The
+previous local window could return 5 when 1 sufficed or max_n was 4.
+Exact power is not monotone in n. Preserve close/minimal rules and report
+achieved significance level, including randomized rejection contributions.
+For normal one-sample designs, max_n remains an extensible initial bracket,
+as in the legacy solver. Exact p0/level inversions are discontinuous and
+can locate a rejection boundary without attaining the requested power;
+document R's target-power convention and explicit recomputation.
+Python two-sample probability inversion stays within admissible domains.
+
+Focused validation uses direct trend enumeration, closed-form normal
+designs, independently summed binomial rejection regions, and 30 R cases.
+Allow 2e-4 absolute tolerance for solved parameters because R's two-sample
+root tolerance is eps^0.25. Broader validation remains reserved for a push.
+
+One-sample solved parameters allow 2e-8 absolute error; exact null size
+derived from a fitted p0 allows 5e-8 because it inherits root-finding error.
+Logistic goodness of fit, Mantel--Haenszel diagnostic, and CLT helper names
+remain open for discussion; do not rename or translate them yet.
+
 ### Ordinal association
 
 `ordinal.assoc()` has the Python counterpart `ordinal_assoc()`, with all

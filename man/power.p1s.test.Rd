@@ -58,7 +58,9 @@ matching \code{stats::power.prop.test()}.}
 
 \item{tol}{Numerical tolerance used in root finding.}
 
-\item{max_n}{Maximum allowable sample size when solving for \code{n}.}
+\item{max_n}{Maximum sample size for exact designs. For normal designs,
+this is the initial upper root bracket, which may be extended, matching
+the existing normal-solver behavior.}
 
 \item{size.rule}{Character string specifying the rule used to select
   the sample size when \code{exact = TRUE}. Must be one of

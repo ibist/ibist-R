@@ -34,6 +34,7 @@ export(rate.1s.ci)
 export(rate.2s.ci)
 export(rate.test)
 export(rr.2x2.ci)
+export(trend.test)
 importFrom(Rcpp,evalCpp)
 importFrom(stats,
   aggregate,
