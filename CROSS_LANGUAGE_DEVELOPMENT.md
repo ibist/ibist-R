@@ -1,6 +1,6 @@
 # R and Python development principles
 
-Agreed: 2026-11-06. Last updated: 2026-11-07.
+Agreed: 2026-11-06. Last updated: 2026-11-08.
 
 This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
@@ -29,7 +29,7 @@ does not establish statistical correctness.
 
 The Python package should work without an R installation. Use snake_case for
 Python functions and arguments, for example `or_2x2_ci()`,
-`cohen_kappa_test()`, `conf_level`, and `ci_variance`. These examples illustrate
+`agreement_test()`, `conf_level`, and `test_variance`. These examples illustrate
 naming conventions; individual signatures still require design review.
 Preserve the current R interface until its separately planned naming migration.
 
@@ -370,6 +370,47 @@ CMH normal tails, the primary SAS example, invalid combinations, preserved
 legacy results, and tiny p-values. The R exporter adds 274 comparison calls;
 tolerances follow the ordinal specification below. Book edits remain deferred.
 
+### Two-rater agreement tests
+
+`agreement.test()` and `agreement_test()` initially provide Cohen's kappa
+and weighted kappa. Their arguments mirror the existing R function:
+`x`, `weights="unweighted"`, confidence level 0.95, two-sided alternative,
+and `test.variance="fce"` / `test_variance="fce"`. One weighting scheme is
+selected per call: unweighted, linear, quadratic, or a custom matrix.
+Named weights use category positions. Retain empty rating categories and
+require matching category order on both axes; do not sort or align labels.
+Counts and their total must not exceed 2^53-1 in the new entry points.
+
+R delegates to `cohen.kappa.test()` and retains its numerical results and
+positional arguments. Keep that legacy function fully working without
+deprecation warnings until after the final exam. Deprecation is a later,
+separate change; do not activate it automatically by calendar date. Book
+sources remain unchanged.
+At deprecation, route both entry points through an internal implementation
+so that the new function never emits the legacy deprecation warning.
+
+Use the observed FCE estimation variance for CIs. The default FCE test
+uses its distinct null variance; delta testing uses the observed estimation
+variance instead. Preserve `null.std.error` / `null_std_error` as the
+selected test SE, explicitly documenting that delta supplies an estimation
+SE rather than a null SE. Return htest/TestResult with the existing kappa
+inference fields, standard errors, selected variance, weight matrix,
+weight scheme, and sample size. Append optional Python fields to preserve
+existing positional TestResult arguments; weights are immutable internal
+tuples exposed as fresh NumPy arrays.
+
+Match R's custom-matrix symmetry tolerance and reject chance agreement one
+or invalid/nonpositive test variances. Two-sided Wald intervals are
+untruncated; one-sided finite limits are clipped to [-1, 1]. Exact and
+multi-rater inference are outside this implementation. Independent checks
+use numerical multinomial derivatives, closed-form binary variances, the
+primary SAS skin example, invariance, replication, and tiny normal tails.
+`data-raw/export-python-agreement-reference.R` adds 60 cases including
+the book's pericardial-effusion example and expected errors. Use `2e-9`
+relative tolerance with no absolute allowance for p-values; ordinary
+estimates/statistics allow `1e-11` absolute error. Near-zero standard errors
+allow `1e-8`, intervals `3e-8`, and serialized weight matrices `1e-15`.
+
 ### Ordinal association
 
 `ordinal.assoc()` has the Python counterpart `ordinal_assoc()`, with all
@@ -515,6 +556,14 @@ across the two exports. Release timing may differ, so record which source
 revision each release includes.
 
 ## Feature workflow and validation
+
+Thorough manual validation is reserved for immediately before a push.
+During development, use only the focused checks needed for the current
+change; do not repeat full suites, package checks, or distribution matrices
+for each addition or commit. Batch additions and run the thorough checks once
+before pushing. After a failure, rerun the affected checks; repeat broader
+checks only when the fix invalidates their earlier results. Keep reference
+cases representative and avoid redundant Cartesian grids.
 
 1. Agree on the statistical specification, public interfaces, defaults, and
    reference examples before implementing a feature.
