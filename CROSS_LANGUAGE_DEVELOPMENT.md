@@ -19,11 +19,12 @@ algorithm. It also defines defaults, alternatives, table orientation,
 reference categories, category order, continuity corrections, exact versus
 mid-p calculations, boundary behavior, and handling of invalid inputs.
 
-Initially, R is the reference implementation because it contains the existing
-methods and validation examples. Future features need not start in R. Choose
-the implementation language according to the task, and implement the other
-language against the agreed specification. An implementation's behavior alone
-does not establish statistical correctness.
+R is the reference implementation because it contains the existing methods
+and validation examples. Develop new features in R first. Research and settle
+the statistical definitions, interface, output, documentation, and focused
+validation before translating the stabilized design to Python. This sequence
+avoids revising both implementations while design decisions remain open.
+An implementation's behavior alone does not establish statistical correctness.
 
 ## Native interfaces
 
@@ -715,14 +716,13 @@ cases representative and avoid redundant Cartesian grids.
 
 1. Agree on the statistical specification, public interfaces, defaults, and
    reference examples before implementing a feature.
-2. Implement first in the language most appropriate to the task, usually R
-   during the initial development period.
-3. Implement the corresponding feature in the other language using the same
-   specification and reference cases.
-4. Validate each implementation against published results, direct formulas,
-   independently constructed small examples, or established software with
-   matching assumptions. Retain the published SAS and Jung examples already
-   used by the R package where applicable.
+2. Research and implement the feature in R first.
+3. Stabilize the R interface, output, documentation, and focused validation.
+   Check published results, direct formulas, independently constructed
+   examples, or established software with matching assumptions. Retain the
+   published SAS and Jung examples already used by R where applicable.
+4. Translate the settled R design to Python using the same specification and
+   reference cases, supplemented by independent numerical validation.
 5. Compare R and Python results using shared cases and explicit numerical
    tolerances. Include sparse tables, zeros, boundary estimates, one-sided
    alternatives, and multiple-measure requests where relevant. Agreement
