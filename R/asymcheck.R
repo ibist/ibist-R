@@ -20,6 +20,12 @@
 #' computed \code{rate.1s.ci()} objects support post-checks. Arbitrary
 #' htest objects without the required inputs are not reconstructed by
 #' evaluating their printed data names.
+#' GLM GOF pre-checks accept \code{asymcheck(glm.gof, fit = fit, ...)}.
+#' Their results support post-checks, including multiple-method collections.
+#' A pre-check reports nonpositive GOF df or degenerate standardization as
+#' failed criteria; the inference function rejects these unestimable tests.
+#' Convergence, model rank, and distance from fitted-value boundaries are
+#' retained. All supported GLM GOF methods use asymptotic reference laws.
 #'
 #' Pearson and G-squared checks report minimum expected count >= 1 and
 #' fraction of expected counts >= 5 of at least 0.8. These are screening
@@ -61,6 +67,10 @@ asymcheck <- function(object, ..., method = NULL) {
   args <- list(...)
   if (is.function(object)) {
     if (!is.null(method)) args$method <- method
+    if (exists("glm.gof", mode = "function") && identical(object, glm.gof)) {
+      args <- .asymcheck_bind(object, args, input = "fit")
+      return(do.call(.glm_gof_precheck, args))
+    }
     if (identical(object, indep.test)) {
       args <- .asymcheck_bind(object, args)
       return(.asymcheck_indep(args$x, args$method, args$correct))
@@ -80,9 +90,16 @@ asymcheck <- function(object, ..., method = NULL) {
     }
     stop("unsupported inference function")
   }
+  if (inherits(object, "ibist_glm_gof_tests")) {
+    if (length(args) || !is.null(method)) stop("post-check overrides forbidden")
+    return(.glm_gof_combine(lapply(object, attr, "gof.diagnostics")))
+  }
   if (inherits(object, "htest") || inherits(object, "ibist_ci")) {
     if (length(args) || !is.null(method)) {
       stop("result post-checks do not accept method or additional inputs")
+    }
+    if (!is.null(attr(object, "gof.diagnostics"))) {
+      return(attr(object, "gof.diagnostics"))
     }
     if (inherits(object, "htest") && !is.null(object$observed) &&
         !is.null(object$expected)) {
@@ -120,12 +137,12 @@ asymcheck <- function(object, ..., method = NULL) {
   do.call(asymcheck, c(list(object = rate.1s.ci), args))
 }
 
-.asymcheck_bind <- function(fun, args) {
+.asymcheck_bind <- function(fun, args, input = "x") {
   call <- as.call(c(list(as.name("precheck")), args))
   matched <- as.list(match.call(fun, call, expand.dots = FALSE))[-1L]
-  if (is.null(matched$x)) stop("a pre-check requires 'x'")
+  if (is.null(matched[[input]])) stop(paste("a pre-check requires", input))
   defaults <- formals(fun)
-  for (name in setdiff(names(defaults), c(names(matched), "...", "x"))) {
+  for (name in setdiff(names(defaults), c(names(matched), "...", input))) {
     matched[[name]] <- eval(defaults[[name]], envir = environment(fun))
   }
   # match.arg uses the first default; an explicit rate vector is retained.

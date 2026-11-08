@@ -44,6 +44,12 @@ run the test or interval. Results from \code{indep.test()} and newly
 computed \code{rate.1s.ci()} objects support post-checks. Arbitrary
 htest objects without the required inputs are not reconstructed by
 evaluating their printed data names.
+GLM GOF pre-checks accept \code{asymcheck(glm.gof, fit = fit, ...)}.
+Their results support post-checks, including multiple-method collections.
+A pre-check reports nonpositive GOF df or degenerate standardization as
+failed criteria; the inference function rejects these unestimable tests.
+Convergence, model rank, and distance from fitted-value boundaries are
+retained. All supported GLM GOF methods use asymptotic reference laws.
 
 Pearson and G-squared checks report minimum expected count >= 1 and
 fraction of expected counts >= 5 of at least 0.8. These are screening
