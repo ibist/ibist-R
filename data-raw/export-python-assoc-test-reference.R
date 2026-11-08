@@ -1,5 +1,6 @@
 # Run from ibist-R. Python also validates independent test formulas.
-for (file in c("indep_test", "nominal_assoc", "ordinal_assoc", "cmh_ll_test",
+for (file in c("asymcheck", "indep_test", "nominal_assoc", "ordinal_assoc",
+               "cmh_ll_test",
                "assoc_test")) source(paste0("R/", file, ".R"))
 examples <- list(
   list(x = rbind(c(12, 3, 1), c(4, 9, 2), c(1, 5, 13))),

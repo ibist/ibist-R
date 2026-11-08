@@ -6,6 +6,7 @@
 if (!requireNamespace("jsonlite", quietly = TRUE)) {
   stop("Install jsonlite to export development reference cases.")
 }
+source("R/asymcheck.R")
 source("R/indep_test.R")
 source("R/nominal_assoc.R")
 source("R/or_2x2_ci.R")

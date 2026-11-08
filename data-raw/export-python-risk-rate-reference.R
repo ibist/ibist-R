@@ -6,7 +6,7 @@
 if (!requireNamespace("jsonlite", quietly = TRUE)) {
   stop("Install jsonlite to export development reference cases.")
 }
-for (file in c("ci", "prop_1s_ci", "prop_2s_ci", "rr_2x2_ci",
+for (file in c("asymcheck", "ci", "prop_1s_ci", "prop_2s_ci", "rr_2x2_ci",
                "rate_1s_ci", "rate_2s_ci", "rate_test")) {
   source(paste0("R/", file, ".R"))
 }

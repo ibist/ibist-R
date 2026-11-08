@@ -480,8 +480,46 @@ See [published rate-power validation](RATE_POWER_VALIDATION.md) for inputs,
 sources, numerical comparisons, and the limits of this external check.
 One-sample solved parameters allow 2e-8 absolute error; exact null size
 derived from a fitted p0 allows 5e-8 because it inherits root-finding error.
-Logistic goodness of fit, Mantel--Haenszel diagnostic, and CLT helper names
+Logistic goodness of fit and CLT helper names
 remain open for discussion; do not rename or translate them yet.
+
+### Shared approximation diagnostics
+
+`asymcheck()` is the agreed R and Python name. A function plus its usual
+inputs gives a pre-check without inference; a supported result gives a
+post-check using retained inputs and settings. Initial function adapters
+cover indep.test/indep_test and rate.1s.ci/rate_1s_ci. R additionally
+supports stats::mantelhaen.test pre-checks on 2 x 2 x K count arrays.
+Raw counts plus method="mantel-haenszel" work in both languages. Do not
+evaluate data.name to recover missing inputs from arbitrary results.
+
+Both inference families accept asymcheck=FALSE by default; TRUE attaches
+the same result under diagnostics. Keep default R Pearson results identical
+to chisq.test(); existing observed counts and method descriptions suffice
+for post-checks. R rate CIs retain an inputs data frame and correct flag;
+Python already retains rate counts/exposure, correction, and orientation.
+Append optional diagnostics fields to Python result classes to preserve
+positional arguments. Neither diagnostics nor their display change inference.
+
+Return ibist_asymcheck/AsymCheckResult with procedure, method, applicable,
+checks, details, notes, and condition.met/condition_met. Criterion tables
+record method, criterion, value, threshold, comparison, and whether met.
+Unassessed values are NA/None; summaries cover only assessed criteria.
+Expected-count screening uses minimum >=1 and fraction >=5 of at least .8,
+following the R stats documented Cochran criteria. LR reports the same
+sparsity indicators with an explicit caveat about Pearson-derived rules.
+Fisher inference is marked not applicable. Mantel-Haenszel preserves the
+legacy variance-sum >=5 heuristic and zero contributions for empty strata.
+
+One-rate approximate intervals report events and plug-in Poisson skewness
+1/sqrt(x), with no invented universal accuracy cutoff. Exact intervals and
+zero-event log/uncorrected Wald exact fallbacks are not applicable. Preserve
+method order, repeated methods, correction, confidence level, and CI side.
+Sampling independence and common-effect homogeneity are not assessed.
+Keep mantelhaen.asymcheck working as a wrapper with its original output;
+deprecation warnings and book edits remain deferred until after the exam.
+Focused checks use direct formulas, pre/attached/post equivalence, pre-checks
+without inference, and 14 R reference cases (1e-12 relative tolerance).
 
 ### Ordinal association
 

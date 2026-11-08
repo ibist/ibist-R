@@ -1,5 +1,5 @@
 # Shared CI interface cases, generated from R first. Run from ibist-R.
-files <- c("ci", "prop_1s_ci", "prop_2s_ci", "rr_2x2_ci",
+files <- c("asymcheck", "ci", "prop_1s_ci", "prop_2s_ci", "rr_2x2_ci",
            "or_2x2_ci", "rate_1s_ci", "rate_2s_ci", "or_paired_ci",
            "prop_paired_ci", "or_common")
 for (file in files) source(paste0("R/", file, ".R"))

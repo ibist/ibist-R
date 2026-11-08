@@ -36,6 +36,9 @@ adequate when
 
 This diagnostic applies to the asymptotic test. It is not required for an
 exact conditional test such as \code{\link{or.common.test}}.
+This entry point retains its original output and has no deprecation
+warning. New code can use \code{asymcheck(x, method = "mantel-haenszel")},
+which shares the same calculation and labels the rule as a heuristic.
 }
 \examples{
 strat <- array(

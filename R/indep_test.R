@@ -11,6 +11,8 @@
 #' @param correct Logical. Apply Yates' continuity correction to Pearson's
 #'   test for a 2 x 2 table. Default is \code{FALSE}. Setting this to
 #'   \code{TRUE} for another method or table size is an error.
+#' @param asymcheck Logical; attach shared approximation diagnostics in
+#'   \code{diagnostics}, default \code{FALSE}. See \code{\link{asymcheck}}.
 #' @param ... Named options for Fisher's method, passed to
 #'   \code{\link[stats]{fisher.test}}: \code{alternative}, \code{conf.int},
 #'   \code{conf.level}, \code{workspace}, \code{simulate.p.value}, and
@@ -121,7 +123,8 @@
 #'
 #' @export
 indep.test <- function(x, method = c("pearson", "lr", "fisher"),
-                      correct = FALSE, ...) {
+                      correct = FALSE, ..., asymcheck = FALSE) {
+  .asymcheck_flag(asymcheck, "asymcheck")
   method <- match.arg(method)
   tab <- as.matrix(x)
   if (length(dim(x)) != 2L || any(dim(tab) < 2L) || !is.numeric(tab) ||
@@ -169,6 +172,7 @@ indep.test <- function(x, method = c("pearson", "lr", "fisher"),
     result$observed <- tab
     result$expected <- outer(rowSums(tab), colSums(tab)) / sum(tab)
     dimnames(result$expected) <- dimnames(tab)
+    if (asymcheck) result$diagnostics <- .asymcheck_indep(tab, method, correct)
     return(result)
   }
 
@@ -183,5 +187,6 @@ indep.test <- function(x, method = c("pearson", "lr", "fisher"),
                                   lower.tail = FALSE)
     result$method <- "Likelihood-ratio G-squared test of independence"
   }
+  if (asymcheck) result$diagnostics <- .asymcheck_indep(tab, method, correct)
   result
 }

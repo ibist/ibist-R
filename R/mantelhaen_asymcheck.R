@@ -20,6 +20,9 @@
 #'
 #' This diagnostic applies to the asymptotic test. It is not required for an
 #' exact conditional test such as \code{\link{or.common.test}}.
+#' This entry point retains its original output and has no deprecation
+#' warning. New code can use \code{asymcheck(x, method = "mantel-haenszel")},
+#' which shares the same calculation and labels the rule as a heuristic.
 #'
 #' @return An object of class \code{"ibist_mantelhaen_asymcheck"} containing:
 #' \item{variance}{the hypergeometric variance for each stratum.}
@@ -40,16 +43,13 @@
 #'
 #' @export
 mantelhaen.asymcheck <- function(x) {
-  tables <- validate_stratified_tables(x)
-  variance <- vapply(tables, mantelhaen_stratum_variance, numeric(1))
-  names(variance) <- paste("Stratum", seq_along(variance))
-  variance_sum <- sum(variance)
+  check <- .asymcheck_mh(x)
 
   structure(
     list(
-      variance = variance,
-      variance.sum = variance_sum,
-      condition.met = variance_sum >= 5,
+      variance = check$details$variance,
+      variance.sum = check$details$variance.sum,
+      condition.met = check$condition.met,
       data.name = deparse(substitute(x))
     ),
     class = "ibist_mantelhaen_asymcheck"

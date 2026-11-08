@@ -12,7 +12,8 @@ rate.1s.ci(
   correct = TRUE,
   side = NULL,
   alternative = NULL,
-  ...
+  ...,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -43,10 +44,14 @@ selects two-sided limits. One-sided bounds use the full error probability.}
 Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
+
+\item{asymcheck}{Logical; attach shared approximation diagnostics in
+\code{diagnostics}, default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An object of class \code{"ibist_ci"} containing the common estimate
-  and a confidence-limit matrix with one row per method.
+  and a confidence-limit matrix with one row per method. The retained
+  \code{inputs} data frame and \code{correct} permit later post-checks.
 }
 \description{
 Computes confidence intervals for a Poisson rate parameter

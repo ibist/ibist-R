@@ -4,7 +4,13 @@
 \alias{indep.test}
 \title{Tests of Independence in a Contingency Table}
 \usage{
-indep.test(x, method = c("pearson", "lr", "fisher"), correct = FALSE, ...)
+indep.test(
+  x,
+  method = c("pearson", "lr", "fisher"),
+  correct = FALSE,
+  ...,
+  asymcheck = FALSE
+)
 }
 \arguments{
 \item{x}{A two-dimensional matrix or table of non-negative integer counts,
@@ -22,6 +28,9 @@ test for a 2 x 2 table. Default is \code{FALSE}. Setting this to
 \code{conf.level}, \code{workspace}, \code{simulate.p.value}, and
 \code{B}. Other names, unnamed options, and options supplied to another
 method are errors. Fisher's null odds ratio is fixed at one.}
+
+\item{asymcheck}{Logical; attach shared approximation diagnostics in
+\code{diagnostics}, default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An object of class \code{"htest"} containing:

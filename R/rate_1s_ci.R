@@ -70,8 +70,11 @@
 #' When \code{correct = TRUE}, continuity correction is applied on the count
 #' scale for methods that support it.
 #' 
+#' @param asymcheck Logical; attach shared approximation diagnostics in
+#'   \code{diagnostics}, default \code{FALSE}. See \code{\link{asymcheck}}.
 #' @return An object of class \code{"ibist_ci"} containing the common estimate
-#'   and a confidence-limit matrix with one row per method.
+#'   and a confidence-limit matrix with one row per method. The retained
+#'   \code{inputs} data frame and \code{correct} permit later post-checks.
 #'
 #' @examples
 #' rate.1s.ci(5, 10)
@@ -87,8 +90,9 @@ rate.1s.ci <- function(
   conf.level = 0.95,
   method = c("exact", "score", "wh", "wald", "log"),
   correct = TRUE,
-  side = NULL, alternative = NULL, ...
+  side = NULL, alternative = NULL, ..., asymcheck = FALSE
 ) {
+  .asymcheck_flag(asymcheck, "asymcheck")
   orientation <- resolve_ci_side(side, alternative)
   side <- orientation$side
 
@@ -124,7 +128,7 @@ rate.1s.ci <- function(
     }
   )
 
-  new_ibist_ci(
+  result <- new_ibist_ci(
     method = methods,
     estimate = c(rate = x / exposure),
     intervals = intervals,
@@ -133,6 +137,12 @@ rate.1s.ci <- function(
     parameter = "Poisson rate",
     data.name = paste0("x = ", x, ", exposure = ", exposure)
   )
+  result$inputs <- data.frame(x = x, exposure = exposure)
+  result$correct <- correct
+  if (asymcheck) result$diagnostics <- .asymcheck_rate(list(
+    x = x, exposure = exposure, method = methods, conf.level = conf.level,
+    correct = correct, side = side, alternative = NULL))
+  result
 }
 
 ci_exact <- function(x, exposure, conf.level, correct = TRUE,
