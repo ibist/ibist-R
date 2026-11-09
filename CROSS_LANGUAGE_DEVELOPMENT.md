@@ -569,8 +569,8 @@ computability are separate and must not produce a successful approximation
 assessment. Report the book quantity, threshold, comparison, and result;
 passing a guideline is not a coverage guarantee. Pseudo-counts and
 continuity corrections do not increase the observed quantities used in the
-guidelines. These corrected criteria are implemented in R first; the Python
-adapters and shared diagnostic references await translation after review.
+guidelines. These criteria were settled in R first, then translated to
+Python with the same quantities, thresholds, defaults, and settings.
 
 | Procedure | Book criterion | Source |
 | --- | --- | --- |
@@ -590,7 +590,8 @@ check applies to its test, not its accompanying CI. Function pre-checks
 support stats::prop.test and stats::binom.test (one/two-sample equality
 settings only); base R results lack retained counts and need pre-checks.
 Package prop.1s.ci, prop.2s.ci, rr.2x2.ci, or.2x2.ci, rate.2s.ci, and
-rate.test append asymcheck=FALSE and retain original inputs and settings
+rate.test and their Python counterparts append asymcheck=FALSE/False and
+retain original inputs and settings
 for optional attached diagnostics and post-checks. Preserve method order,
 repetitions, correction/mid-p settings, and CI side. OR pre-checks permit
 named tol through ...; no interval inversion or enumeration is run.
@@ -599,6 +600,13 @@ Book examples used for focused checks include OSA 16/40, VF 38/100 versus
 267/984, AF observed 411 against .0119*25800 null expected events, and
 the low-HDL and MI two-rate examples. Small positive tables must fail
 when their book approximation quantity is below its threshold.
+The exporter data-raw/export-python-book-asymcheck-reference.R supplies
+15 representative CI/test cases with R revision and source hashes. It
+translates field names and input/sample indices only; existing 14 shared
+independence/MH/one-rate cases are regenerated with the book's criteria.
+Python root tolerance for RR now matches R's strict (0,1) interval. Focused
+comparisons use 1e-12 relative and 1e-14 absolute tolerances; direct book
+quantities and pre/attached/post checks supplement cross-language agreement.
 
 ### Ordinal association
 
