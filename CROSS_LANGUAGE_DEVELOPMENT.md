@@ -544,14 +544,18 @@ Return ibist_asymcheck/AsymCheckResult with procedure, method, applicable,
 checks, details, notes, and condition.met/condition_met. Criterion tables
 record method, criterion, value, threshold, comparison, and whether met.
 Unassessed values are NA/None; summaries cover only assessed criteria.
-Expected-count screening uses minimum >=1 and fraction >=5 of at least .8,
-following the R stats documented Cochran criteria. LR reports the same
+Expected-count screening follows book Ch. 12: all four expected counts >=5
+for 2x2 tables; Ch. 14 uses minimum >=1 and fraction >=5 of at least .8 for
+larger tables. LR reports the same
 sparsity indicators with an explicit caveat about Pearson-derived rules.
 Fisher inference is marked not applicable. Mantel-Haenszel preserves the
 legacy variance-sum >=5 heuristic and zero contributions for empty strata.
 
-One-rate approximate intervals report events and plug-in Poisson skewness
-1/sqrt(x), with no invented universal accuracy cutoff. Exact intervals and
+One-rate intervals follow book Ch. 21: ordinary Wald observed x >=50;
+log-Wald and uncorrected score x >=10. WH is recommended even for small
+counts; no binary cutoff is invented for WH or corrected score. Their
+criterion remains unassessed. Plug-in skewness 1/sqrt(x) is descriptive,
+not a pass/fail approximation criterion. Exact intervals and
 zero-event log/uncorrected Wald exact fallbacks are not applicable. Preserve
 method order, repeated methods, correction, confidence level, and CI side.
 Sampling independence and common-effect homogeneity are not assessed.
@@ -559,6 +563,42 @@ Keep mantelhaen.asymcheck working as a wrapper with its original output;
 deprecation warnings and book edits remain deferred until after the exam.
 Focused checks use direct formulas, pre/attached/post equivalence, pre-checks
 without inference, and 14 R reference cases (1e-12 relative tolerance).
+
+The book is the source for approximation criteria. Input validity and
+computability are separate and must not produce a successful approximation
+assessment. Report the book quantity, threshold, comparison, and result;
+passing a guideline is not a coverage guarantee. Pseudo-counts and
+continuity corrections do not increase the observed quantities used in the
+guidelines. These corrected criteria are implemented in R first; the Python
+adapters and shared diagnostic references await translation after review.
+
+| Procedure | Book criterion | Source |
+| --- | --- | --- |
+| One-proportion test | n*pi0*(1-pi0) >=5 | Ch. 11 score-test summary |
+| Two-proportion equality test | Four pooled expected counts >=5 | Ch. 12 |
+| Proportion CIs | n_i*p.hat_i*(1-p.hat_i) >=5 per sample | Ch. 11--12 |
+| RR/OR approximate CIs | Same original-sample criterion | Ch. 15 RR/OR |
+| MH test | Sum of null conditional variances >=5 | Ch. 15 MH summary |
+| One-rate test | Null expected events r*T >=10 | Ch. 21 test summary |
+| Two-rate equality test | n*pi0*(1-pi0) >=5 | Ch. 22 test summary |
+| Log-Wald rate-ratio CI | Both original observed counts >10 | Ch. 22 |
+| Conditional score rate-ratio CI | Binomial CI criterion | Ch. 22 and 11 |
+| Exact/mid-p procedures | No asymptotic approximation check | Exact sections |
+
+For the two-rate equality test, n=x1+x2 and pi0=T1/(T1+T2). A test result's
+check applies to its test, not its accompanying CI. Function pre-checks
+support stats::prop.test and stats::binom.test (one/two-sample equality
+settings only); base R results lack retained counts and need pre-checks.
+Package prop.1s.ci, prop.2s.ci, rr.2x2.ci, or.2x2.ci, rate.2s.ci, and
+rate.test append asymcheck=FALSE and retain original inputs and settings
+for optional attached diagnostics and post-checks. Preserve method order,
+repetitions, correction/mid-p settings, and CI side. OR pre-checks permit
+named tol through ...; no interval inversion or enumeration is run.
+Positive original sample sizes are required to check binomial CI criteria.
+Book examples used for focused checks include OSA 16/40, VF 38/100 versus
+267/984, AF observed 411 against .0119*25800 null expected events, and
+the low-HDL and MI two-rate examples. Small positive tables must fail
+when their book approximation quantity is below its threshold.
 
 ### Ordinal association
 
