@@ -21,6 +21,8 @@
 #' @param nuisance.tol Positive absolute probability tolerance for the
 #'   Chan--Zhang nuisance maximization. Unresolved probabilities within this
 #'   tolerance are treated as acceptance, giving conservative endpoints.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' Newcombe's hybrid interval combines separate Wilson bounds using the
@@ -81,6 +83,8 @@
 #' @return An \code{ibist_ci} object with the observed named \code{estimate},
 #'   a \code{conf.int} matrix with one row per method, \code{conf.level},
 #'   \code{method}, \code{side}, and the two \code{sample.proportions}.
+#'   Original counts and settings are retained for \code{asymcheck(result)}.
+#'   Diagnostics do not change intervals or select a different method.
 #' @references
 #' Agresti, A., and Caffo, B. (2000). Simple and effective confidence intervals
 #' for proportions and differences of proportions result from adding two
@@ -123,8 +127,9 @@ prop.2s.ci <- function(
   method = c("newcombe", "wald", "miettinen-nurminen", "mee",
              "agresti-caffo", "brown-li", "chan-zhang"),
   correct = FALSE, alternative = NULL,
-  tol = 1e-8, nuisance.tol = 1e-10, side = NULL
+  tol = 1e-8, nuisance.tol = 1e-10, side = NULL, asymcheck = FALSE
 ) {
+  validate_ci_flag(asymcheck, "asymcheck")
   counts <- independent_binomial_counts(x, n)
   orientation <- resolve_ci_side(side, alternative)
   alternative <- orientation$alternative
@@ -193,6 +198,11 @@ prop.2s.ci <- function(
   result$alternative <- settings$alternative
   result$correct <- correct
   result$sample.proportions <- stats::setNames(p, c("prop 1", "prop 2"))
+  context <- list(family = "p2", x = counts$x, n = counts$n, method = methods,
+    conf.level = conf.level, correct = correct, tol = tol,
+    nuisance.tol = nuisance.tol, side = orientation$side, alternative = NULL)
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
   result
 }
 

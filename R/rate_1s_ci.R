@@ -75,6 +75,10 @@
 #' @return An object of class \code{"ibist_ci"} containing the common estimate
 #'   and a confidence-limit matrix with one row per method. The retained
 #'   \code{inputs} data frame and \code{correct} permit later post-checks.
+#'   Checks follow the book's Chapter 21 observed-count guidance: Wald
+#'   \eqn{x\ge50}, log-Wald and uncorrected score \eqn{x\ge10}. WH is
+#'   recommended even for small counts; no binary cutoff is assigned to WH
+#'   or corrected score. These guidelines are not coverage guarantees.
 #'
 #' @examples
 #' rate.1s.ci(5, 10)

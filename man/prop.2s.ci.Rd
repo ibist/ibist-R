@@ -14,7 +14,8 @@ prop.2s.ci(
   alternative = NULL,
   tol = 1e-08,
   nuisance.tol = 1e-10,
-  side = NULL
+  side = NULL,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -45,11 +46,16 @@ tolerance are treated as acceptance, giving conservative endpoints.}
 \item{side}{Interval form: \code{"two.sided"} (default),
 \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
 selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{asymcheck}{Logical. Attach the book's approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An \code{ibist_ci} object with the observed named \code{estimate},
   a \code{conf.int} matrix with one row per method, \code{conf.level},
   \code{method}, \code{side}, and the two \code{sample.proportions}.
+  Original counts and settings are retained for \code{asymcheck(result)}.
+  Diagnostics do not change intervals or select a different method.
 }
 \description{
 Computes intervals for the first population proportion minus the second.

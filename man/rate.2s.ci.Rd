@@ -11,7 +11,8 @@ rate.2s.ci(
   method = c("log", "score", "exact"),
   side = NULL,
   alternative = NULL,
-  ...
+  ...,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -37,10 +38,17 @@ selects two-sided limits. One-sided bounds use the full error probability.}
 Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
+
+\item{asymcheck}{Logical. Attach the book's approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An object of class \code{"ibist_ci"} containing the rate estimates
   and a confidence-limit matrix with one row per method.
+  Original counts, exposures, and settings are retained for post-checks.
+  Log-Wald checks both observed counts > 10 (book Chapter 22); score uses
+  the conditional binomial CI guideline from Chapter 11. Exact intervals
+  need no asymptotic check. Diagnostics do not change the intervals.
 }
 \description{
 Computes confidence intervals for the rate ratio

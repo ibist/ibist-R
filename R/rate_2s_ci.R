@@ -20,6 +20,8 @@
 #'     \item \code{"exact"}: Transformed exact Clopper-Pearson interval
 #'   }
 #' @param ... Reserved for future extensions.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' For two independent Poisson variables
@@ -56,6 +58,10 @@
 #'
 #' @return An object of class \code{"ibist_ci"} containing the rate estimates
 #'   and a confidence-limit matrix with one row per method.
+#'   Original counts, exposures, and settings are retained for post-checks.
+#'   Log-Wald checks both observed counts > 10 (book Chapter 22); score uses
+#'   the conditional binomial CI guideline from Chapter 11. Exact intervals
+#'   need no asymptotic check. Diagnostics do not change the intervals.
 #'
 #' @examples
 #' rate.2s.ci(c(151, 55), exposure = c(57518.1, 74573.5))
@@ -70,8 +76,9 @@ rate.2s.ci <- function(
   exposure = c(1.0, 1.0),
   conf.level = 0.95,
   method = c("log", "score", "exact"),
-  side = NULL, alternative = NULL, ...
+  side = NULL, alternative = NULL, ..., asymcheck = FALSE
 ) {
+  .asymcheck_flag(asymcheck, "asymcheck")
   orientation <- resolve_ci_side(side, alternative)
   side <- orientation$side
   if (length(x) != 2L || any(!is.finite(x)) ||
@@ -111,7 +118,7 @@ rate.2s.ci <- function(
       x, exposure, conf.level, alternative = orientation$alternative, ...)
   )
 
-  new_ibist_ci(
+  result <- new_ibist_ci(
     method = methods,
     estimate = c("rate 1" = rate1, "rate 2" = rate2,
                  "rate ratio" = rate_ratio),
@@ -124,6 +131,11 @@ rate.2s.ci <- function(
       "exposure = c(", exposure[1], ", ", exposure[2], ")"
     )
   )
+  context <- list(family = "rate2", x = x, exposure = exposure,
+    method = methods, conf.level = conf.level, side = side, alternative = NULL)
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
+  result
 }
 
 ci_rate_ratio_log <- function(x, exposure, conf.level,

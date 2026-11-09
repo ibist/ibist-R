@@ -11,7 +11,8 @@ or.2x2.ci(
   midp = FALSE,
   side = NULL,
   alternative = NULL,
-  ...
+  ...,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -35,10 +36,20 @@ selects two-sided limits. One-sided bounds use the full error probability.}
 Conflicting \code{side} and \code{alternative} values are errors.}
 
 \item{...}{Reserved for future extensions.}
+
+\item{asymcheck}{Logical. Attach the book's approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An object of class \code{"ibist_ci"} containing the common estimate
   and a confidence-limit matrix with one row per method.
+  Original counts and settings are retained for \code{asymcheck(result)}.
+  Wald and Gart check \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5} in each
+  original sample, following the book's Chapter 15; Gart's pseudo-counts
+  do not enter this check. Conditional exact and mid-p intervals need no
+  asymptotic check. The guideline does not guarantee coverage and never
+  changes the interval calculation. Diagnostic sample sizes must be
+  positive; empty original rows cannot define sample proportions.
 }
 \description{
 Computes confidence intervals for the odds ratio in a 2 x 2 table.

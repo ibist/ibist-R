@@ -22,6 +22,8 @@
 #'   the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
 #'   to \eqn{x} in the direction determined by \code{alternative}. For
 #'   \code{"two.sided"}, the correction uses the sign of \eqn{x-\mu_0}.
+#' @param asymcheck Logical. Attach the book's test-approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' One-sample test:
@@ -78,6 +80,10 @@
 #' need not agree exactly.
 #'
 #' @return
+#' Original counts and settings are retained for \code{asymcheck(result)}.
+#' Diagnostics check the test's null-distribution approximation, not the
+#' accompanying confidence interval, and do not change inference.
+#'
 #' An object of class \code{"htest"} containing:
 #' \item{statistic}{the standardized normal statistic \code{z} for one-sample
 #'   tests or the chi-square statistic from \code{\link[stats]{prop.test}} for
@@ -115,8 +121,9 @@
 rate.test <- function(x, exposure = 1.0, r = 1.0,
                       alternative = c("two.sided", "less", "greater"),
                       conf.level = 0.95,
-                      correct = TRUE)
+                      correct = TRUE, asymcheck = FALSE)
 {
+  .asymcheck_flag(asymcheck, "asymcheck")
   alternative <- match.arg(alternative)
 
   if (length(x) != length(exposure)) {
@@ -227,5 +234,9 @@ rate.test <- function(x, exposure = 1.0, r = 1.0,
       data.name   = data.name
   )
   class(rval) <- "htest"
+  context <- list(family = "rate-test", x = x, exposure = exposure, r = r,
+    conf.level = conf.level, correct = correct, alternative = alternative)
+  attr(rval, "asymcheck.context") <- context
+  if (asymcheck) rval$diagnostics <- .asymcheck_rate_test(context)
   rval
 }

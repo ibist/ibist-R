@@ -13,7 +13,8 @@ prop.1s.ci(
   midp = FALSE,
   alternative = NULL,
   tol = 1e-08,
-  side = NULL
+  side = NULL,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -42,6 +43,9 @@ Conflicting \code{side} and \code{alternative} values are errors.}
 \item{side}{Interval form: \code{"two.sided"} (default),
 \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
 selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{asymcheck}{Logical. Attach the book's approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An \code{ibist_ci} object with named \code{estimate}, a
@@ -49,6 +53,8 @@ An \code{ibist_ci} object with named \code{estimate}, a
   \code{conf.level}, \code{method}, and \code{side}. For vector
   inputs, rows are ordered by input and then method; \code{inputs} records
   the input index, count, and sample size corresponding to each row.
+  Original counts and settings are retained for \code{asymcheck(result)}.
+  Diagnostics do not change intervals or select a different method.
 }
 \description{
 Computes intervals for a binomial probability, optionally comparing methods

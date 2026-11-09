@@ -27,16 +27,47 @@
 #' Convergence, model rank, and distance from fitted-value boundaries are
 #' retained. All supported GLM GOF methods use asymptotic reference laws.
 #'
-#' Pearson and G-squared checks report minimum expected count >= 1 and
-#' fraction of expected counts >= 5 of at least 0.8. These are screening
+#' Pearson and G-squared checks follow the book: all four expected counts
+#' >= 5 for 2 x 2 tables; for larger tables, minimum >= 1 and fraction >= 5
+#' of at least 0.8. These are screening
 #' heuristics, not universal adequacy conditions. The G-squared report
 #' additionally notes that these criteria were developed for Pearson's
 #' approximation. Mantel-Haenszel retains the legacy sum of conditional
 #' hypergeometric variances >= 5 rule. Empty strata contribute zero.
 #'
-#' Approximate rate intervals report observed events and the plug-in
-#' Poisson skewness 1/sqrt(x), undefined at zero. No universal cutoff is
-#' asserted: their condition.met values are NA. Exact procedures are
+#' Binomial test pre-checks accept \code{stats::prop.test()} and
+#' \code{stats::binom.test()}. One-proportion score tests use
+#' \eqn{n\pi_0(1-\pi_0)\ge5}; two-sample equality tests check the four pooled
+#' expected counts >= 5. Base R results lack retained counts: use pre-checks.
+#'
+#' CI pre-checks support \code{prop.1s.ci()}, \code{prop.2s.ci()},
+#' \code{rr.2x2.ci()}, and \code{or.2x2.ci()}. New results retain inputs for
+#' attached/post checks. Approximate methods use the book's original-sample
+#' binomial-normal guideline \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5} in each
+#' sample. One-sample vector inputs are checked separately. Continuity
+#' corrections and pseudo-counts never increase the sample quantities used
+#' in this criterion. It is a guideline, not a guarantee of CI coverage;
+#' the book explicitly demonstrates poor Wald coverage even when it passes.
+#' Conditional exact and mid-p methods need no asymptotic check; mid-p does
+#' not guarantee nominal coverage. Odds-ratio pre-checks accept named
+#' \code{tol} through \code{...}; no conditional inversion is run.
+#'
+#' Rate test pre-checks accept \code{rate.test()}. A one-rate test checks
+#' null expected events \eqn{\lambda_0T\ge10}. A two-rate equality test checks
+#' \eqn{n\pi_0(1-\pi_0)\ge5}, where \eqn{n=x_1+x_2} and
+#' \eqn{\pi_0=T_1/(T_1+T_2)}. These checks apply to the test approximation,
+#' not its accompanying interval, which can use a different construction.
+#'
+#' For \code{rate.2s.ci()}, log-Wald checks both observed counts > 10;
+#' conditional score uses the one-proportion CI guideline after conditioning
+#' on the total. Exact intervals need no asymptotic check. Pre/attached/post
+#' checks retain counts, exposures, method order, repetitions, and CI side.
+#'
+#' One-rate intervals report observed events and plug-in Poisson skewness
+#' 1/sqrt(x). Book Chapter 21 uses observed x >= 50 for ordinary Wald and
+#' x >= 10 for log-Wald and uncorrected score. Its practical recommendations
+#' include uncorrected WH for small counts and give no binary cutoff for
+#' WH or corrected score, so those conditions remain NA. Exact procedures are
 #' marked not applicable, including exact fallbacks for zero-event log
 #' and uncorrected Wald intervals. Dependence, sampling assumptions, and
 #' common-effect homogeneity are not assessed. No p-value or interval
@@ -53,8 +84,16 @@
 #'
 #'   NIST/SEMATECH e-Handbook, section 1.3.6.6.19, Poisson Distribution
 #'   (skewness). \url{https://www.itl.nist.gov/div898/handbook/}.
+#'
+#'   Companion textbook, Chapters 11--12 (binomial tests and intervals),
+#'   Chapter 14 (contingency tables), Chapter 15 (risk ratios, odds ratios,
+#'   and Mantel--Haenszel), and Chapters 21--22 (Poisson rates). Criteria
+#'   follow the inferential summaries and practical notes in those chapters.
 #' @seealso \code{\link{indep.test}}, \code{\link{rate.1s.ci}},
-#'   \code{\link{mantelhaen.asymcheck}}
+#'   \code{\link{mantelhaen.asymcheck}}, \code{\link{prop.1s.ci}},
+#'   \code{\link{prop.2s.ci}}, \code{\link{rr.2x2.ci}},
+#'   \code{\link{or.2x2.ci}}, \code{\link{rate.test}},
+#'   \code{\link{rate.2s.ci}}
 #' @examples
 #' tab <- matrix(c(12, 8, 5, 15), 2)
 #' asymcheck(indep.test, x = tab)
@@ -62,11 +101,34 @@
 #' fit$diagnostics
 #' asymcheck(fit)
 #' asymcheck(rate.1s.ci, x = 12, exposure = 100, method = "wald")
+#' vf <- matrix(c(38, 62, 267, 717), 2, byrow = TRUE)
+#' asymcheck(rr.2x2.ci, x = vf)
+#' fit <- or.2x2.ci(vf, method = "gart", asymcheck = TRUE)
+#' asymcheck(fit)
 #' @export
 asymcheck <- function(object, ..., method = NULL) {
   args <- list(...)
   if (is.function(object)) {
     if (!is.null(method)) args$method <- method
+    if (identical(object, stats::prop.test) ||
+        identical(object, stats::binom.test)) {
+      return(.asymcheck_prop_test(.asymcheck_bind(object, args),
+        exact = identical(object, stats::binom.test)))
+    }
+    adapters <- c(prop.1s.ci = "p1", prop.2s.ci = "p2", rr.2x2.ci = "rr",
+                  or.2x2.ci = "or", rate.2s.ci = "rate2")
+    for (name in names(adapters)) {
+      if (exists(name, mode = "function") && identical(object, get(name))) {
+        args <- .asymcheck_bind(object, args,
+          allowed.dots = if (name == "or.2x2.ci") "tol" else character())
+        args$family <- unname(adapters[name])
+        return(.asymcheck_book_ci(args))
+      }
+    }
+    if (exists("rate.test", mode = "function") &&
+        identical(object, rate.test)) {
+      return(.asymcheck_rate_test(.asymcheck_bind(object, args)))
+    }
     if (exists("glm.gof", mode = "function") && identical(object, glm.gof)) {
       args <- .asymcheck_bind(object, args, input = "fit")
       return(do.call(.glm_gof_precheck, args))
@@ -100,6 +162,11 @@ asymcheck <- function(object, ..., method = NULL) {
     }
     if (!is.null(attr(object, "gof.diagnostics"))) {
       return(attr(object, "gof.diagnostics"))
+    }
+    context <- attr(object, "asymcheck.context", exact = TRUE)
+    if (!is.null(context)) {
+      return(if (context$family == "rate-test") .asymcheck_rate_test(context)
+        else .asymcheck_book_ci(context))
     }
     if (inherits(object, "htest") && !is.null(object$observed) &&
         !is.null(object$expected)) {
@@ -137,20 +204,28 @@ asymcheck <- function(object, ..., method = NULL) {
   do.call(asymcheck, c(list(object = rate.1s.ci), args))
 }
 
-.asymcheck_bind <- function(fun, args, input = "x") {
+.asymcheck_bind <- function(fun, args, input = "x",
+                            allowed.dots = character()) {
   call <- as.call(c(list(as.name("precheck")), args))
   matched <- as.list(match.call(fun, call, expand.dots = FALSE))[-1L]
   if (is.null(matched[[input]])) stop(paste("a pre-check requires", input))
   defaults <- formals(fun)
   for (name in setdiff(names(defaults), c(names(matched), "...", input))) {
-    matched[[name]] <- eval(defaults[[name]], envir = environment(fun))
+    if (identical(defaults[[name]], quote(expr = ))) next
+    matched[name] <- list(eval(defaults[[name]], envir = environment(fun)))
   }
   # match.arg uses the first default; an explicit rate vector is retained.
   if (is.null(args$method) && !is.null(matched$method)) {
     matched$method <- matched$method[1L]
   }
   if (length(matched$...)) {
-    stop("additional inference options are not supported by this pre-check")
+    extra <- as.list(matched$...)
+    if (length(names(extra)) != length(extra) || anyDuplicated(names(extra)) ||
+        any(!names(extra) %in% allowed.dots)) {
+      stop("additional inference options are not supported by this pre-check")
+    }
+    matched[names(extra)] <- extra
+    matched$... <- NULL
   }
   if (!is.null(matched$asymcheck)) {
     .asymcheck_flag(matched$asymcheck, "asymcheck")
@@ -201,12 +276,13 @@ asymcheck <- function(object, ..., method = NULL) {
   expected <- outer(rowSums(tab), colSums(tab)) / sum(tab)
   dimnames(expected) <- dimnames(tab)
   values <- c(min(expected), mean(expected >= 5))
+  thresholds <- if (all(dim(tab) == 2L)) c(5, 1) else c(1, 0.8)
   applicable <- method != "fisher"
   checks <- .asymcheck_rows(method,
     c("minimum expected count", "fraction expected >= 5"), values,
-    if (applicable) c(1, 0.8) else NA_real_,
+    if (applicable) thresholds else NA_real_,
     if (applicable) ">=" else NA_character_,
-    if (applicable) values >= c(1, 0.8) else NA)
+    if (applicable) values >= thresholds else NA)
   notes <- if (!applicable) {
     "Conditional Fisher inference needs no asymptotic check."
   } else "Expected-count rules are approximation screening heuristics."
@@ -263,15 +339,24 @@ asymcheck <- function(object, ..., method = NULL) {
     (methods == "wald" & !args$correct))
   approximate <- methods != "exact" & !fallback
   checks <- do.call(rbind, lapply(seq_along(methods), function(i) {
+    threshold <- if (!approximate[i]) NA_real_ else
+      switch(methods[i], wald = 50, log = 10,
+        score = if (!args$correct) 10 else NA_real_, wh = NA_real_)
     .asymcheck_rows(methods[i], c("observed events", "plug-in skewness"),
-      c(x, if (x > 0 && approximate[i]) 1 / sqrt(x) else NA_real_))
+      c(x, if (x > 0 && approximate[i]) 1 / sqrt(x) else NA_real_),
+      c(threshold, NA_real_), c(if (is.na(threshold)) NA_character_ else ">=",
+                               NA_character_),
+      c(if (is.na(threshold)) NA else x >= threshold, NA))
   }))
   .asymcheck_new("one-sample Poisson rate interval", methods,
     any(approximate), checks,
     list(x = x, exposure = exposure, conf.level = args$conf.level,
       side = orientation$side, correct = args$correct,
       approximate = approximate, exact.fallback = fallback),
-    c("No universal event-count cutoff is asserted for interval accuracy.",
+    c("Book Ch. 21: observed-count guidance, not a coverage guarantee.",
+      "Wald: y >= 50; log-Wald and uncorrected score: y >= 10.",
+      "WH is recommended even for small counts; no binary cutoff is given.",
+      "Corrected score/WH have no separate observed-count cutoff in the book.",
       if (x == 0) "Zero events: plug-in skewness is undefined.",
       if (any(fallback)) "Zero-event log/uncorrected Wald uses exact fallback.",
       if (!any(approximate)) "No asymptotic interval is being assessed."))

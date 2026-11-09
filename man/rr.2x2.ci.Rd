@@ -10,7 +10,8 @@ rr.2x2.ci(
   method = c("koopman", "katz"),
   alternative = NULL,
   tol = 1e-08,
-  side = NULL
+  side = NULL,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -31,12 +32,19 @@ Conflicting \code{side} and \code{alternative} values are errors.}
 \item{side}{Interval form: \code{"two.sided"} (default),
 \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
 selects two-sided limits. One-sided bounds use the full error probability.}
+
+\item{asymcheck}{Logical. Attach the book's approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
 An \code{ibist_ci} object containing the observed named
   \code{estimate}, a \code{conf.int} matrix with one row per method,
   \code{conf.level}, \code{method}, \code{side}, and the two
   \code{sample.proportions}.
+  Original counts and settings are retained for \code{asymcheck(result)}.
+  Both approximate methods check \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5}
+  in each original sample, as in the book's Chapter 15. This guideline
+  does not guarantee coverage. Diagnostics do not change the intervals.
 }
 \description{
 Computes intervals for the first row's event probability divided by the

@@ -10,7 +10,8 @@ rate.test(
   r = 1,
   alternative = c("two.sided", "less", "greater"),
   conf.level = 0.95,
-  correct = TRUE
+  correct = TRUE,
+  asymcheck = FALSE
 )
 }
 \arguments{
@@ -37,8 +38,15 @@ The interval direction follows \code{alternative}.}
 the count scale. For one-sample tests, a \eqn{\pm 0.5} correction is applied
 to \eqn{x} in the direction determined by \code{alternative}. For
 \code{"two.sided"}, the correction uses the sign of \eqn{x-\mu_0}.}
+
+\item{asymcheck}{Logical. Attach the book's test-approximation checks under
+\code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.}
 }
 \value{
+Original counts and settings are retained for \code{asymcheck(result)}.
+Diagnostics check the test's null-distribution approximation, not the
+accompanying confidence interval, and do not change inference.
+
 An object of class \code{"htest"} containing:
 \item{statistic}{the standardized normal statistic \code{z} for one-sample
   tests or the chi-square statistic from \code{\link[stats]{prop.test}} for

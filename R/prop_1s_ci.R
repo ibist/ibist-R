@@ -20,6 +20,8 @@
 #' @param midp Logical. Replace Clopper--Pearson tail probabilities with
 #'   mid-p probabilities. Other requested methods are unchanged.
 #' @param tol Positive numerical tolerance for interval inversion.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' Wilson intervals invert the binomial score statistic. Continuity correction
@@ -50,6 +52,8 @@
 #'   \code{conf.level}, \code{method}, and \code{side}. For vector
 #'   inputs, rows are ordered by input and then method; \code{inputs} records
 #'   the input index, count, and sample size corresponding to each row.
+#'   Original counts and settings are retained for \code{asymcheck(result)}.
+#'   Diagnostics do not change intervals or select a different method.
 #'
 #' @references
 #' Agresti, A., and Coull, B. A. (1998). Approximate is better than
@@ -74,8 +78,9 @@ prop.1s.ci <- function(
   x, n, conf.level = 0.95,
   method = c("wilson", "wald", "agresti-coull", "clopper-pearson", "blaker"),
   correct = FALSE, midp = FALSE,
-  alternative = NULL, tol = 1e-8, side = NULL
+  alternative = NULL, tol = 1e-8, side = NULL, asymcheck = FALSE
 ) {
+  validate_ci_flag(asymcheck, "asymcheck")
   counts <- validate_binomial_counts(x, n)
   orientation <- resolve_ci_side(side, alternative)
   alternative <- orientation$alternative
@@ -124,6 +129,11 @@ prop.1s.ci <- function(
   result$midp <- midp
   result$inputs <- data.frame(input = rows$input, x = counts$x[rows$input],
                               n = counts$n[rows$input])
+  context <- list(family = "p1", x = counts$x, n = counts$n, method = methods,
+    conf.level = conf.level, correct = correct, midp = midp, tol = tol,
+    side = orientation$side, alternative = NULL)
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
   result
 }
 

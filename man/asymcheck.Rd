@@ -51,16 +51,47 @@ failed criteria; the inference function rejects these unestimable tests.
 Convergence, model rank, and distance from fitted-value boundaries are
 retained. All supported GLM GOF methods use asymptotic reference laws.
 
-Pearson and G-squared checks report minimum expected count >= 1 and
-fraction of expected counts >= 5 of at least 0.8. These are screening
+Pearson and G-squared checks follow the book: all four expected counts
+>= 5 for 2 x 2 tables; for larger tables, minimum >= 1 and fraction >= 5
+of at least 0.8. These are screening
 heuristics, not universal adequacy conditions. The G-squared report
 additionally notes that these criteria were developed for Pearson's
 approximation. Mantel-Haenszel retains the legacy sum of conditional
 hypergeometric variances >= 5 rule. Empty strata contribute zero.
 
-Approximate rate intervals report observed events and the plug-in
-Poisson skewness 1/sqrt(x), undefined at zero. No universal cutoff is
-asserted: their condition.met values are NA. Exact procedures are
+Binomial test pre-checks accept \code{stats::prop.test()} and
+\code{stats::binom.test()}. One-proportion score tests use
+\eqn{n\pi_0(1-\pi_0)\ge5}; two-sample equality tests check the four pooled
+expected counts >= 5. Base R results lack retained counts: use pre-checks.
+
+CI pre-checks support \code{prop.1s.ci()}, \code{prop.2s.ci()},
+\code{rr.2x2.ci()}, and \code{or.2x2.ci()}. New results retain inputs for
+attached/post checks. Approximate methods use the book's original-sample
+binomial-normal guideline \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5} in each
+sample. One-sample vector inputs are checked separately. Continuity
+corrections and pseudo-counts never increase the sample quantities used
+in this criterion. It is a guideline, not a guarantee of CI coverage;
+the book explicitly demonstrates poor Wald coverage even when it passes.
+Conditional exact and mid-p methods need no asymptotic check; mid-p does
+not guarantee nominal coverage. Odds-ratio pre-checks accept named
+\code{tol} through \code{...}; no conditional inversion is run.
+
+Rate test pre-checks accept \code{rate.test()}. A one-rate test checks
+null expected events \eqn{\lambda_0T\ge10}. A two-rate equality test checks
+\eqn{n\pi_0(1-\pi_0)\ge5}, where \eqn{n=x_1+x_2} and
+\eqn{\pi_0=T_1/(T_1+T_2)}. These checks apply to the test approximation,
+not its accompanying interval, which can use a different construction.
+
+For \code{rate.2s.ci()}, log-Wald checks both observed counts > 10;
+conditional score uses the one-proportion CI guideline after conditioning
+on the total. Exact intervals need no asymptotic check. Pre/attached/post
+checks retain counts, exposures, method order, repetitions, and CI side.
+
+One-rate intervals report observed events and plug-in Poisson skewness
+1/sqrt(x). Book Chapter 21 uses observed x >= 50 for ordinary Wald and
+x >= 10 for log-Wald and uncorrected score. Its practical recommendations
+include uncorrected WH for small counts and give no binary cutoff for
+WH or corrected score, so those conditions remain NA. Exact procedures are
 marked not applicable, including exact fallbacks for zero-event log
 and uncorrected Wald intervals. Dependence, sampling assumptions, and
 common-effect homogeneity are not assessed. No p-value or interval
@@ -73,6 +104,10 @@ fit <- indep.test(tab, asymcheck = TRUE)
 fit$diagnostics
 asymcheck(fit)
 asymcheck(rate.1s.ci, x = 12, exposure = 100, method = "wald")
+vf <- matrix(c(38, 62, 267, 717), 2, byrow = TRUE)
+asymcheck(rr.2x2.ci, x = vf)
+fit <- or.2x2.ci(vf, method = "gart", asymcheck = TRUE)
+asymcheck(fit)
 }
 \references{
 R Core Team. Fisher's Exact Test for Count Data,
@@ -81,8 +116,16 @@ R Core Team. Fisher's Exact Test for Count Data,
 
   NIST/SEMATECH e-Handbook, section 1.3.6.6.19, Poisson Distribution
   (skewness). \url{https://www.itl.nist.gov/div898/handbook/}.
+
+  Companion textbook, Chapters 11--12 (binomial tests and intervals),
+  Chapter 14 (contingency tables), Chapter 15 (risk ratios, odds ratios,
+  and Mantel--Haenszel), and Chapters 21--22 (Poisson rates). Criteria
+  follow the inferential summaries and practical notes in those chapters.
 }
 \seealso{
 \code{\link{indep.test}}, \code{\link{rate.1s.ci}},
-  \code{\link{mantelhaen.asymcheck}}
+  \code{\link{mantelhaen.asymcheck}}, \code{\link{prop.1s.ci}},
+  \code{\link{prop.2s.ci}}, \code{\link{rr.2x2.ci}},
+  \code{\link{or.2x2.ci}}, \code{\link{rate.test}},
+  \code{\link{rate.2s.ci}}
 }

@@ -37,7 +37,7 @@ test_that("MH matches the legacy example and direct hypergeometric variance", {
                          method = "mantel-haenszel")$condition.met)
 })
 
-test_that("rate checks preserve settings without arbitrary cutoffs", {
+test_that("rate checks preserve settings and use the book's count guidance", {
   methods <- c("wald", "exact", "wald", "log")
   pre <- asymcheck(rate.1s.ci, x = 12, exposure = 100, method = methods,
                    side = "lower", correct = FALSE)
@@ -47,7 +47,8 @@ test_that("rate checks preserve settings without arbitrary cutoffs", {
   expect_equal(pre, asymcheck(fit))
   expect_identical(pre$method, methods)
   expect_equal(pre$checks$value[c(2, 6, 8)], rep(1 / sqrt(12), 3))
-  expect_true(is.na(pre$condition.met))
+  expect_false(pre$condition.met)
+  expect_equal(pre$checks$threshold[c(1, 5, 7)], c(50, 50, 10))
   expect_false(asymcheck(rate.1s.ci, x = 0, method = "log")$applicable)
   expect_false(asymcheck(rate.1s.ci, x = 0, method = "wald",
                          correct = FALSE)$applicable)

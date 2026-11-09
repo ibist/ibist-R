@@ -16,6 +16,8 @@
 #' @param midp Logical; should the conditional exact method be modified using
 #'   mid-p probabilities? The default is \code{FALSE}.
 #' @param ... Reserved for future extensions.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' One-sided BP bounds invert the ordered conditional tail, as for Cornfield.
@@ -39,6 +41,13 @@
 #'
 #' @return An object of class \code{"ibist_ci"} containing the common estimate
 #'   and a confidence-limit matrix with one row per method.
+#'   Original counts and settings are retained for \code{asymcheck(result)}.
+#'   Wald and Gart check \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5} in each
+#'   original sample, following the book's Chapter 15; Gart's pseudo-counts
+#'   do not enter this check. Conditional exact and mid-p intervals need no
+#'   asymptotic check. The guideline does not guarantee coverage and never
+#'   changes the interval calculation. Diagnostic sample sizes must be
+#'   positive; empty original rows cannot define sample proportions.
 #'
 #' @references
 #' Anscombe, F. J. (1956). On estimating binomial response relations.
@@ -74,8 +83,11 @@ or.2x2.ci <- function(
   conf.level = 0.95,
   method = c("wald", "gart", "cornfield", "bp"),
   midp = FALSE,
-  side = NULL, alternative = NULL, ...
+  side = NULL, alternative = NULL, ..., asymcheck = FALSE
 ) {
+  if (!is.logical(asymcheck) || length(asymcheck) != 1L || is.na(asymcheck)) {
+    stop("'asymcheck' must be TRUE or FALSE.")
+  }
   side <- resolve_ci_side(side, alternative)$side
   tab <- validate_2x2_table(x)
   if (!is.numeric(conf.level) || length(conf.level) != 1L ||
@@ -118,7 +130,7 @@ or.2x2.ci <- function(
   method_labels[methods == "wald"] <- "wald"
   method_labels[methods == "gart"] <- "gart"
 
-  new_ibist_ci(
+  result <- new_ibist_ci(
     method = method_labels,
     estimate = c("odds ratio" = estimate),
     intervals = intervals,
@@ -128,6 +140,13 @@ or.2x2.ci <- function(
     side = side,
     null.value = c("odds ratio" = 1)
   )
+  context <- list(family = "or", x = tab, method = methods,
+    conf.level = conf.level, midp = midp, side = side, alternative = NULL)
+  options <- list(...)
+  if ("tol" %in% names(options)) context["tol"] <- options["tol"]
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
+  result
 }
 
 validate_2x2_table <- function(x) {

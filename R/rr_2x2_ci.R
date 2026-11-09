@@ -15,6 +15,8 @@
 #' @param conf.level Confidence level, between 0 and 1.
 #' @param method One or more of \code{"koopman"} (default) or \code{"katz"}.
 #' @param tol Positive numerical tolerance for score inversion.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
 #'
 #' @details
 #' Katz's method constructs a Wald interval for the log risk ratio, using
@@ -39,6 +41,10 @@
 #'   \code{estimate}, a \code{conf.int} matrix with one row per method,
 #'   \code{conf.level}, \code{method}, \code{side}, and the two
 #'   \code{sample.proportions}.
+#'   Original counts and settings are retained for \code{asymcheck(result)}.
+#'   Both approximate methods check \eqn{n_i\hat\pi_i(1-\hat\pi_i)\ge5}
+#'   in each original sample, as in the book's Chapter 15. This guideline
+#'   does not guarantee coverage. Diagnostics do not change the intervals.
 #' @references
 #' Katz, D., Baptista, J., Azen, S. P., and Pike, M. C. (1978). Obtaining
 #' confidence intervals for the risk ratio in cohort studies.
@@ -54,8 +60,9 @@
 #' @export
 rr.2x2.ci <- function(
   x, conf.level = 0.95, method = c("koopman", "katz"),
-  alternative = NULL, tol = 1e-8, side = NULL
+  alternative = NULL, tol = 1e-8, side = NULL, asymcheck = FALSE
 ) {
+  validate_ci_flag(asymcheck, "asymcheck")
   if (!is.matrix(x) && !inherits(x, "table")) {
     stop("'x' must be a 2 x 2 table of non-negative integer counts.")
   }
@@ -92,6 +99,11 @@ rr.2x2.ci <- function(
   result$side <- orientation$side
   result$alternative <- settings$alternative
   result$sample.proportions <- stats::setNames(p, c("prop 1", "prop 2"))
+  context <- list(family = "rr", x = cbind(counts$x, counts$n-counts$x),
+    method = methods, conf.level = conf.level, tol = tol,
+    side = orientation$side, alternative = NULL)
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
   result
 }
 
