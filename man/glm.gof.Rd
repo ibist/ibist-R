@@ -65,7 +65,10 @@ Osius-Rojek follows the SAS normal standardization: center the profile
 Pearson statistic at J, not J-r. For profile trial totals n and probabilities
 p, its variance is 2*sum(1-1/n) plus the squared norm of the residuals from
 projecting (1-2p)/sqrt(n*p*(1-p)) onto the weighted model space. The reported
-statistic is the squared standardized statistic, with one df.
+statistic is the squared standardized statistic, with one df. This gives
+a two-sided normal-test p-value. Hosmer et al. (1997), pp. 978-979, also
+describes conditional-moment corrections and scaled chi-square calibration
+for small samples; those refinements are not implemented here.
 
 Stukel uses a score test of eta^2*I(eta>=0) and eta^2*I(eta<0), where eta
 includes offsets. Weighted projection removes nuisance model terms. Degrees
@@ -75,9 +78,38 @@ Stable projections use column-scaled SVD with relative tolerance 1e-10.
 Projection noise below 1e-10*max(original column norm, 1) is discarded.
 Standardizing variances <= 1e-12 are treated as numerically degenerate.
 
-All five methods are asymptotic. Diagnostics report expected counts for
-grouped tests, positive standardizing variance for Osius-Rojek, and
-estimable added terms for Stukel. They do not certify finite-sample accuracy.
+All five methods are asymptotic. Binomial Pearson/deviance checks apply
+Chapter 11's \eqn{n_g\hat\pi_g(1-\hat\pi_g)\ge5} guideline within each
+covariate-pattern group to operationalize Chapter 16's requirement for
+large groups. Hosmer-Lemeshow applies it within risk groups and also checks
+actual group count \eqn{H\ge6}, after retaining ties. This application of
+Chapter 11 is explicit; Chapter 16 does not prescribe that numeric cutoff.
+Pattern sizes and G/n are reported without inventing a cutoff for
+Chapter 16's requirement that G be much smaller than n.
+
+Poisson Pearson/deviance checks use all fitted expected counts >= 5 as a
+conservative Chapter 23 screen. The number below 2 and fraction below 5
+are reported, without inventing a percentage cutoff for ``many'' counts.
+These guidelines do not certify finite-sample accuracy or trigger pooling.
+
+Osius-Rojek and Stukel adequacy is unassessed (\code{condition.met = NA}):
+no finite-sample adequacy cutoff is established by the reviewed sources.
+Osius-Rojek's increasing-group theory permits groups of size one and
+requires regular information, probability bounds, variance growth, and
+group-size conditions (pp. 1147-1151). These asymptotic conditions cannot
+be verified by a minimum expected count or positive fitted variance.
+Hosmer et al.'s Stukel simulations do not establish a sample-size cutoff.
+Both methods remain applicable asymptotic procedures. Positive df, usable
+standardizing variance, and
+estimable added terms are recorded separately under
+\code{details$computability}; they do not establish approximation adequacy.
+Pre-checks retain this information even for uncomputable tests; inference
+rejects those tests as before. Passing a count guideline does not bypass
+the separate computability requirements.
+
+For multiple methods, the combined criterion is FALSE if any assessed
+method fails, NA if none fails but any method is unassessed, and TRUE only
+if all methods pass their criteria. Per-method results remain available.
 Quasi, estimated-dispersion, constrained, and penalized fits are outside
 this interface. Existing logistic.gof() retains its separate pooling rules.
 }
@@ -92,8 +124,17 @@ SAS Institute. SAS/STAT User's Guide, LOGISTIC Procedure,
   Goodness-of-Fit Tests (pp. 6050-6053, chapter 79).
   \url{https://support.sas.com/documentation/}.
   Hosmer and Lemeshow (1980), Communications in Statistics A9, 1043-1069.
-  Osius and Rojek (1992), JASA 87, 1145-1152.
+  Osius and Rojek (1992), Normal Goodness-of-Fit Tests for Multinomial
+  Models with Large Degrees of Freedom. JASA 87, 1145-1152.
+  \doi{10.1080/01621459.1992.10476271}.
+  Hosmer, Hosmer, le Cessie, and Lemeshow (1997), A comparison of
+  goodness-of-fit tests for the logistic regression model.
+  Statistics in Medicine 16, 965-980.
   Stukel (1988), JASA 83, 426-431.
+
+  Companion textbook, Chapter 11 (binomial approximation guideline),
+  Chapter 16, Calibration (grouped logistic and Hosmer-Lemeshow tests),
+  and Chapter 23, Goodness of Fit (Poisson expected-count guidance).
 }
 \seealso{
 \code{\link{logistic.gof}}, \code{\link{asymcheck}}

@@ -37,7 +37,10 @@
 #' Pearson statistic at J, not J-r. For profile trial totals n and probabilities
 #' p, its variance is 2*sum(1-1/n) plus the squared norm of the residuals from
 #' projecting (1-2p)/sqrt(n*p*(1-p)) onto the weighted model space. The reported
-#' statistic is the squared standardized statistic, with one df.
+#' statistic is the squared standardized statistic, with one df. This gives
+#' a two-sided normal-test p-value. Hosmer et al. (1997), pp. 978-979, also
+#' describes conditional-moment corrections and scaled chi-square calibration
+#' for small samples; those refinements are not implemented here.
 #'
 #' Stukel uses a score test of eta^2*I(eta>=0) and eta^2*I(eta<0), where eta
 #' includes offsets. Weighted projection removes nuisance model terms. Degrees
@@ -47,9 +50,38 @@
 #' Projection noise below 1e-10*max(original column norm, 1) is discarded.
 #' Standardizing variances <= 1e-12 are treated as numerically degenerate.
 #'
-#' All five methods are asymptotic. Diagnostics report expected counts for
-#' grouped tests, positive standardizing variance for Osius-Rojek, and
-#' estimable added terms for Stukel. They do not certify finite-sample accuracy.
+#' All five methods are asymptotic. Binomial Pearson/deviance checks apply
+#' Chapter 11's \eqn{n_g\hat\pi_g(1-\hat\pi_g)\ge5} guideline within each
+#' covariate-pattern group to operationalize Chapter 16's requirement for
+#' large groups. Hosmer-Lemeshow applies it within risk groups and also checks
+#' actual group count \eqn{H\ge6}, after retaining ties. This application of
+#' Chapter 11 is explicit; Chapter 16 does not prescribe that numeric cutoff.
+#' Pattern sizes and G/n are reported without inventing a cutoff for
+#' Chapter 16's requirement that G be much smaller than n.
+#'
+#' Poisson Pearson/deviance checks use all fitted expected counts >= 5 as a
+#' conservative Chapter 23 screen. The number below 2 and fraction below 5
+#' are reported, without inventing a percentage cutoff for ``many'' counts.
+#' These guidelines do not certify finite-sample accuracy or trigger pooling.
+#'
+#' Osius-Rojek and Stukel adequacy is unassessed (\code{condition.met = NA}):
+#' no finite-sample adequacy cutoff is established by the reviewed sources.
+#' Osius-Rojek's increasing-group theory permits groups of size one and
+#' requires regular information, probability bounds, variance growth, and
+#' group-size conditions (pp. 1147-1151). These asymptotic conditions cannot
+#' be verified by a minimum expected count or positive fitted variance.
+#' Hosmer et al.'s Stukel simulations do not establish a sample-size cutoff.
+#' Both methods remain applicable asymptotic procedures. Positive df, usable
+#' standardizing variance, and
+#' estimable added terms are recorded separately under
+#' \code{details$computability}; they do not establish approximation adequacy.
+#' Pre-checks retain this information even for uncomputable tests; inference
+#' rejects those tests as before. Passing a count guideline does not bypass
+#' the separate computability requirements.
+#'
+#' For multiple methods, the combined criterion is FALSE if any assessed
+#' method fails, NA if none fails but any method is unassessed, and TRUE only
+#' if all methods pass their criteria. Per-method results remain available.
 #' Quasi, estimated-dispersion, constrained, and penalized fits are outside
 #' this interface. Existing logistic.gof() retains its separate pooling rules.
 #'
@@ -62,8 +94,17 @@
 #'   Goodness-of-Fit Tests (pp. 6050-6053, chapter 79).
 #'   \url{https://support.sas.com/documentation/}.
 #'   Hosmer and Lemeshow (1980), Communications in Statistics A9, 1043-1069.
-#'   Osius and Rojek (1992), JASA 87, 1145-1152.
+#'   Osius and Rojek (1992), Normal Goodness-of-Fit Tests for Multinomial
+#'   Models with Large Degrees of Freedom. JASA 87, 1145-1152.
+#'   \doi{10.1080/01621459.1992.10476271}.
+#'   Hosmer, Hosmer, le Cessie, and Lemeshow (1997), A comparison of
+#'   goodness-of-fit tests for the logistic regression model.
+#'   Statistics in Medicine 16, 965-980.
 #'   Stukel (1988), JASA 83, 426-431.
+#'
+#'   Companion textbook, Chapter 11 (binomial approximation guideline),
+#'   Chapter 16, Calibration (grouped logistic and Hosmer-Lemeshow tests),
+#'   and Chapter 23, Goodness of Fit (Poisson expected-count guidance).
 #' @seealso \code{\link{logistic.gof}}, \code{\link{asymcheck}}
 #' @examples
 #' d <- data.frame(age = seq(25, 75, 10), y = c(0, 0, 0, 7, 6, 17),
@@ -223,6 +264,7 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
   if (method == "hosmer-lemeshow") {
     parts$groups <- .glm_gof_hl(data, g)
     parts$df <- nrow(parts$groups) - 2L
+    parts$requested.groups <- g
   }
   if (method == "osius-rojek") {
     v <- (1-2*data$mu) / sqrt(data$variance)
@@ -278,39 +320,70 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
 
 .glm_gof_check <- function(data, method, parts) {
   tab <- parts$groups
-  rows <- .asymcheck_rows(method, "degrees of freedom", parts$df, 0, ">",
-                          parts$df > 0)
-  if (method %in% c("pearson", "deviance", "hosmer-lemeshow")) {
-    values <- min(tab$expected)
-    names <- "minimum expected events"
-    if (data$family == "binomial") {
-      values <- c(values, min(tab$n-tab$expected))
-      names <- c(names, "minimum expected nonevents")
-    }
-    rows <- rbind(rows, .asymcheck_rows(method, names, values, 5, ">=",
-                                        values >= 5))
-  } else if (method == "osius-rojek") {
-    rows <- rbind(rows, .asymcheck_rows(method, "standardizing variance",
-      parts$variance, 1e-12, ">",
-      is.finite(parts$variance) && parts$variance > 1e-12))
-  } else {
-    rows <- rbind(rows, .asymcheck_rows(method, "estimable added terms",
-      parts$df, 0, ">", parts$df > 0))
+  computability <- list(df = parts$df, positive.df = parts$df > 0,
+                         ok = parts$df > 0)
+  if (method == "osius-rojek") {
+    computability$standardizing.variance <- parts$variance
+    computability$variance.tolerance <- 1e-12
+    computability$variance.usable <- is.finite(parts$variance) &&
+      parts$variance > 1e-12
+    computability$ok <- computability$ok && computability$variance.usable
   }
+  if (method == "stukel") computability$estimable.added.terms <- parts$df
+  details <- list(family = data$family, link = data$link, rank = data$rank,
+    converged = TRUE, boundary.fitted = FALSE, groups = tab,
+    computability = computability, n = sum(data$n),
+    n.patterns = nrow(data$x), pattern.fraction = nrow(data$x)/sum(data$n),
+    minimum.fitted.margin = min(if (data$family == "binomial")
+      pmin(data$mu, 1-data$mu) else data$mu))
+  notes <- c("Book guidelines are not guarantees of approximation accuracy.",
+    "Computability is separate; see details$computability.")
+  if (method %in% c("osius-rojek", "stukel")) {
+    rows <- .asymcheck_rows(method, "asymptotic adequacy", NA_real_)
+    notes <- c(notes,
+      "No finite-sample adequacy cutoff is established by reviewed sources.",
+      "Adequacy is unassessed; computability does not establish accuracy.")
+  } else if (data$family == "binomial") {
+    variance <- tab$expected*(1-tab$expected/tab$n)
+    details$binomial.variance <- variance
+    rows <- .asymcheck_rows(method,
+      "minimum n_g * p.hat_g * (1-p.hat_g)", min(variance), 5, ">=",
+      min(variance) >= 5)
+    notes <- c(notes,
+      "Ch. 11's binomial guideline operationalizes Ch. 16's large groups.",
+      "It is applied within each covariate-pattern or HL risk group.")
+    if (method == "hosmer-lemeshow") {
+      details$requested.groups <- parts$requested.groups
+      details$actual.groups <- nrow(tab)
+      rows <- rbind(.asymcheck_rows(method, "actual risk groups", nrow(tab),
+        6, ">=", nrow(tab) >= 6), rows)
+      notes <- c(notes,
+        "Book Ch. 16 requires actual H >= 6, after retaining ties.",
+        "Risk grouping and probability ties affect Hosmer-Lemeshow results.")
+    } else notes <- c(notes,
+      "Ch. 16 requires replication and G much smaller than n.",
+      "Pattern sizes and G/n are reported without an invented ratio cutoff.")
+  } else {
+    expected <- tab$expected
+    details$expected.below.two <- sum(expected < 2)
+    details$expected.below.five <- sum(expected < 5)
+    details$fraction.expected.below.five <- mean(expected < 5)
+    rows <- .asymcheck_rows(method,
+      c("minimum expected events", "number expected < 2",
+        "fraction expected < 5"),
+      c(min(expected), sum(expected < 2), mean(expected < 5)),
+      c(5, NA, NA), c(">=", NA, NA), c(min(expected) >= 5, NA, NA))
+    notes <- c(notes,
+      "Ch. 23: all expected counts >= 5 is a conservative screen.",
+      "Any expected count < 2 or many < 5 merit attention.",
+      "No percentage cutoff is invented for 'many'; groups are not pooled.")
+  }
+  if (!computability$ok) notes <- c(notes,
+    "Computability failed; inference rejects this test.")
+  if (method == "stukel" && parts$df == 1) notes <- c(notes,
+    "Only one Stukel direction is estimable.")
   .asymcheck_new("GLM goodness of fit", method, TRUE, rows,
-    list(family = data$family, link = data$link, rank = data$rank,
-         converged = TRUE, boundary.fitted = FALSE, groups = tab,
-         minimum.fitted.margin = min(if (data$family == "binomial")
-           pmin(data$mu, 1-data$mu) else data$mu)),
-    c("All GOF methods here are asymptotic; passing checks is not a guarantee.",
-      if (method == "hosmer-lemeshow")
-        "Risk grouping and probability ties affect Hosmer-Lemeshow results.",
-      if (method == "stukel" && parts$df == 1)
-        "Only one Stukel direction is estimable.",
-      if (method == "stukel" && parts$df == 0)
-        "No Stukel direction is estimable.",
-      if (method %in% c("osius-rojek", "stukel"))
-        "Sparse-cell cutoffs do not assess this test's asymptotic accuracy."))
+    details, notes)
 }
 
 .glm_gof_precheck <- function(fit, method = "pearson", g = 10,
@@ -331,9 +404,13 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
                    "Criteria do not verify all sampling assumptions.")
   rows <- do.call(rbind, lapply(checks, `[[`, "checks"))
   rownames(rows) <- NULL
-  .asymcheck_new("GLM goodness of fit", methods, TRUE, rows,
+  result <- .asymcheck_new("GLM goodness of fit", methods, TRUE, rows,
     list(methods = stats::setNames(lapply(checks, `[[`, "details"), methods)),
     notes)
+  status <- vapply(checks, `[[`, logical(1), "condition.met")
+  result$condition.met <- if (any(!status, na.rm = TRUE)) FALSE else
+    if (anyNA(status)) NA else TRUE
+  result
 }
 
 #' @rdname glm.gof

@@ -22,8 +22,12 @@
 #' evaluating their printed data names.
 #' GLM GOF pre-checks accept \code{asymcheck(glm.gof, fit = fit, ...)}.
 #' Their results support post-checks, including multiple-method collections.
-#' A pre-check reports nonpositive GOF df or degenerate standardization as
-#' failed criteria; the inference function rejects these unestimable tests.
+#' Grouped binomial GOF checks use the Chapter 11 binomial guideline within
+#' Chapter 16's covariate-pattern/risk groups; HL also checks actual H >= 6.
+#' Poisson GOF reports the Chapter 23 expected-count screen and small counts.
+#' Osius-Rojek/Stukel adequacy remains unassessed. Positive GOF df and usable
+#' standardization are separate computability information; inference rejects
+#' uncomputable tests. See \code{\link{glm.gof}} for sources and interpretation.
 #' Convergence, model rank, and distance from fitted-value boundaries are
 #' retained. All supported GLM GOF methods use asymptotic reference laws.
 #'
