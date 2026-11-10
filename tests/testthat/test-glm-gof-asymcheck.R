@@ -81,3 +81,13 @@ test_that("computability never assesses Osius-Rojek or Stukel adequacy", {
   expect_s3_class(asymcheck(glm.gof, fit, method = "stukel"),
                    "ibist_asymcheck")
 })
+
+test_that("passing count screens cannot authorize saturated-model inference", {
+  d <- data.frame(x = factor(1:3), y = c(6, 7, 8))
+  fit <- glm(y ~ x, d, family = poisson())
+  check <- asymcheck(glm.gof, fit)
+  expect_true(check$condition.met)
+  expect_equal(check$details$computability$df, 0)
+  expect_false(check$details$computability$ok)
+  expect_error(glm.gof(fit), "degrees of freedom")
+})

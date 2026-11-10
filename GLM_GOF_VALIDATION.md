@@ -67,8 +67,11 @@ absolute tolerance for statistics/groups, and 1e-10 absolute for p-values.
 
 ## Book-based approximation diagnostics
 
-The 2026-11-09 audit corrects R diagnostics first; Python and shared-reference
-translation follow review. Numerical tests and grouping algorithms are
+The 2026-11-09 audit corrects R diagnostics first. Python translation and
+shared-reference updates are deferred until R stabilizes; Python currently
+reports GLM approximation adequacy as unassessed. Elizabeth's editorial
+review of the proposed cross-chapter binomial guideline is pending in the
+book's Calibration section. Numerical tests and grouping algorithms are
 unchanged. All methods remain asymptotic; published agreement does not
 establish finite-sample calibration.
 
@@ -85,8 +88,8 @@ establish finite-sample calibration.
   also reported, with no invented percentage for ``many.''
 - Osius–Rojek/Stukel adequacy is unassessed (`condition.met = NA`). The book
   gives no criterion, and the reviewed papers establish no finite-sample
-  cutoff. Degrees of freedom, standardizing
-  variance, and estimable added terms are computability information, never
+  cutoff. Degrees of freedom, standardizing variance, and estimable added
+  terms are computability information, never
   approximation passes. Existing inference errors remain in place.
 - A multiple-method summary cannot hide an unassessed method behind a
   passing one: any failure gives FALSE; otherwise any unassessed method

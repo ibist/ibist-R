@@ -517,8 +517,10 @@ uncomputable tests. These quantities are not adequacy criteria. Report
 convergence, rank, fitted boundary distance, original groups, and actual HL
 risk groups separately from approximation assessment.
 
-The 2026-11-09 book audit settled the following corrected R diagnostics;
-Python translation and shared-reference updates follow R review. Binomial
+The 2026-11-09 book audit implemented the following corrected R diagnostics;
+Python translation and shared-reference updates remain deferred until R
+stabilizes. Elizabeth's editorial review of the proposed cross-chapter
+binomial guideline is pending in the book's Calibration section. Binomial
 Pearson/deviance apply Ch. 11's n_g*p.hat_g*(1-p.hat_g) >=5 within each
 Ch. 16 covariate-pattern group. HL applies this to risk groups and requires
 actual H >=6 after ties, rather than merely positive df. The binomial
