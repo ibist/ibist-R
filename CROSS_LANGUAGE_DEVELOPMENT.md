@@ -1,6 +1,6 @@
 # R and Python development principles
 
-Agreed: 2026-11-06. Last updated: 2026-11-08.
+Agreed: 2026-11-06. Last updated: 2026-11-09.
 
 This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
@@ -509,10 +509,34 @@ relative tolerance; standardizing variances <=1e-12 are numerically zero.
 Support asymcheck(glm.gof/glm_gof, fit, ...) without computing test
 statistics and asymcheck(result) after inference. Optional asymcheck=TRUE
 attaches the same diagnostics. Retain diagnostic inputs independently of
-the visible flag and never retain the full fit. Pre-checks report
-unestimable df or standardization; inference rejects those tests. Report
-convergence, rank, fitted boundary distance, both expected binomial outcome
-counts, actual risk groups, and method-specific standardization conditions.
+the visible flag and never retain the full fit. Pre-checks retain positive
+df and usable standardization under details$computability; inference rejects
+uncomputable tests. These quantities are not adequacy criteria. Report
+convergence, rank, fitted boundary distance, original groups, and actual HL
+risk groups separately from approximation assessment.
+
+The 2026-11-09 book audit settled the following corrected R diagnostics;
+Python translation and shared-reference updates follow R review. Binomial
+Pearson/deviance apply Ch. 11's n_g*p.hat_g*(1-p.hat_g) >=5 within each
+Ch. 16 covariate-pattern group. HL applies this to risk groups and requires
+actual H >=6 after ties, rather than merely positive df. The binomial
+variance screen explicitly operationalizes Ch. 16's qualitative ``large
+groups'' condition; it is not a numeric cutoff stated in that chapter.
+Report group sizes and G/n without inventing a ratio threshold.
+
+Poisson Pearson/deviance use all fitted expected counts >=5 as Ch. 23's
+conservative screen. Report the number below 2 and fraction below 5 without
+inventing a cutoff for ``many.'' Residual df >50 concerns sensitivity to
+minor departures, not failed asymptotic adequacy. Osius-Rojek and Stukel
+remain asymptotic and applicable but have condition.met=NA: the reviewed
+references establish no finite-sample adequacy cutoff. Osius-Rojek permits
+individual groups; its variance-growth and other limiting conditions cannot
+be certified from positive fitted variance. Hosmer et al. (1997) describes
+conditional-moment and scaled chi-square refinements that are not part of
+the current method. Computability must not turn unassessed adequacy into
+a pass. A collection is FALSE if any method fails, NA if none fails but any
+is unassessed, and TRUE only if all pass. Test statistics, p-values,
+grouping, validation, and the old logistic.gof() algorithms are unchanged.
 
 Python consumes statsmodels GLM results and requires statsmodels>=0.14.
 Its new TestResult fields are appended for positional compatibility.
