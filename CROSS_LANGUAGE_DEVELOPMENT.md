@@ -5,6 +5,8 @@ Agreed: 2026-11-06. Last updated: 2026-11-09.
 This document records the agreed approach to a Python sister package for
 ibist. It is the authoritative development policy for both implementations.
 The Python repository is [ibist-py](https://github.com/ibist/ibist-py).
+Read [development lessons](DEVELOPMENT_LESSONS.md) before changing statistical
+diagnostics or translating them; it records failures and required safeguards.
 Its initial package structure uses `ibist` for both the distribution and import
 names. The first implementation provides dataset loading and `or_2x2_ci()`.
 These names describe the development package and do not imply a reserved
