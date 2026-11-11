@@ -153,6 +153,71 @@ Python regression tests account explicitly for clipping; risk-ratio limits
 allow `3e-8` relative or `2e-8` absolute difference, and rate limits use
 `2e-10` relative and absolute tolerance.
 
+### Attributable measures
+
+The R addition `impact.2x2()` summarizes all four attributable measures
+by default for cohort data: `risk-exposed`, `risk-population`,
+`fraction-exposed`, and `fraction-population`. Rows are exposed/unexposed;
+columns are event/nonevent. Optional `measure` selects rows in the supplied
+order, including repetitions. The `ibist_impact` result retains named
+`estimate`, a lower/upper `conf.int` matrix, per-row `method`, study design,
+observed counts, and population-information metadata. `as.data.frame()`
+exports the summary; print methods round only for display. Retain side,
+alternative, confidence-level, and numerical-tolerance conventions.
+
+Exposed risk uses the existing uncorrected Wald risk difference. Cohort
+exposed fractions transform RR limits selected with `rr.method`: `katz`
+(default) or `koopman`. Other measures use Wald intervals on their stated
+scales. Negative estimates are retained, including protective fractions.
+Risk limits use [-1,1]; fraction limits use [-Inf,1]. Undefined log-Wald
+intervals retain identified estimates and NA limits, with a warning and
+measure-specific `notes`. Other computable rows remain available. Koopman
+permits extended limits with zero events. None of these computability
+notes establish asymptotic adequacy.
+
+Population cohort measures assume a representative joint multinomial
+sample when exposure prevalence is estimated from the table. Include the
+shared-data covariance in their delta-method variances. Optional known
+population `exposure` instead uses conditional binomial variances and treats
+that supplied proportion as fixed. Separately sampled exposure groups need
+population exposure information for population inference.
+
+Case-control counts alone do not identify absolute risks. Without external
+outcome prevalence, require `rare=TRUE` and report only the two fractions.
+The exposed fraction transforms sample-OR Wald limits; the population
+fraction uses the exposed fraction of cases and the OR approximation, with
+the log-complement variance from Jewell (2004), p. 90. The sampled case
+fraction does not assess the rare-outcome assumption.
+
+Known population outcome `prevalence` reconstructs risks by Bayes' rule
+and permits all four case-control measures without the rare-outcome
+approximation. With case/control exposure proportions q1/q0 and supplied
+outcome prevalence r, e = r*q1+(1-r)*q0, p1 = r*q1/e, and
+p0 = r*(1-q1)/(1-e). Delta-method variances propagate the independent
+case/control binomial variances through these equations, including induced
+covariance. Fractions use the log-complement scale. Supplied population
+values are fixed: uncertainty in external estimates is not included.
+
+Validation includes Hanley's population-fraction identities, Jewell's
+published case-control example (95% limits rounding to 0.36 and 0.75), and
+independent delta calculations using exposure prevalence and the two risks.
+Known-prevalence case-control intervals are checked against numerical
+Bayes-rule derivatives for a population with exposure .25 and risks .3/.1;
+its outcome prevalence is .15, distinct from the sampled case fraction.
+The VF cohort exposed fraction matches epiR 2.0.93 `AFRisk.strata.wald`.
+Population risk matches its covariance-aware `PARisk.strata.piri`.
+Population fractions match `PAFRisk.strata.wald` and `PAFest.strata.wald`
+when obtained as individual strata, rather than the single-table crude
+display. For example, the VF population fraction is 0.035626 with limits
+(0.001924, 0.068189), whereas epiR's single-table display gives
+(0.028706, 0.043138). Case-control exposed fractions use sample-OR Wald
+limits; epiR's per-stratum `AFest.strata.wald` uses conditional-OR limits.
+These constructions must be identified when comparing results.
+
+R documentation cites the definitions and identifiability references.
+Original book concepts and the epiR dependency are retained during review.
+Python translation follows R stabilization.
+
 ### Contingency-table independence tests
 
 On 2026-11-06, the authors chose `indep.test()` in R and `indep_test()` in
