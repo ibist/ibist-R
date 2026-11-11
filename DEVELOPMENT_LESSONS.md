@@ -48,6 +48,11 @@ See [the reference audit](GLM_GOF_VALIDATION.md#reference-audit-2026-11-09).
   pushing. Do not repeat successful checks after unrelated changes.
 - Keep edited source and documentation within 80 characters per line.
 - Preserve existing book teaching material unless its revision is authorized.
+- Dependency replacement must preserve the concepts and output the author
+  wants to teach. Inventory every output row and its explanation before
+  editing. Missing implementations are work to identify and discuss, not
+  grounds for deleting the concepts. A partial numerical comparison does
+  not establish that the entire package dependency can be removed.
 
 ## Report and preserve repository state accurately
 
