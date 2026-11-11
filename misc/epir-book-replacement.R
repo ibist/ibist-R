@@ -1,9 +1,11 @@
 # Draft replacements for book/Rnw/pepi-vf.Rnw and pepi-coffee.Rnw.
 # Run with Rscript using an installed development version of ibist.
 # Tables have exposure in rows and outcome in columns, positive first.
-# The displays cover the intervals and tests interpreted in the examples.
-# Attributable fractions, population attributable risk, and E-values are
-# omitted from this draft. Retaining them would need separate exposition.
+# Partial comparison covering selected intervals and tests in the examples.
+# Attributable measures are also computed below for review. Their interval
+# constructions are documented in CROSS_LANGUAGE_DEVELOPMENT.md. E-values
+# remain to review. Preserve the original examples and dependency while
+# deciding which output to retain and implementing its replacement.
 
 ci_rows <- function(fit) {
   cbind(estimate = unname(fit$estimate), fit$conf.int)
@@ -57,3 +59,7 @@ coffee.tests <- association_tests(coffee)
 print(coffee.sample.odds)
 print(coffee.effect)
 print(coffee.tests)
+
+# Review every attributable concept from the retained original examples.
+print(ibist::impact.2x2(vf, design = "cohort"))
+print(ibist::impact.2x2(coffee, design = "case-control", rare = TRUE))
