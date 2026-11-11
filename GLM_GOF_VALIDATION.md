@@ -14,14 +14,41 @@ Zero-weight observations are excluded. No automatic pooling is performed.
 The old `logistic.gof()` keeps its behavior and output without new warnings.
 
 Hosmer-Lemeshow, Osius-Rojek, and Stukel require binomial logit models.
-Hosmer-Lemeshow uses SAS target-frequency grouping with probability ties
-at 14 significant digits and actual groups minus two df. Osius-Rojek
+Hosmer-Lemeshow defaults to SAS target-frequency grouping with probability
+ties at 14 significant digits and actual groups minus two df
+(grouping="target"). R also offers
+`grouping="quantile"`, using unique type-7 sample quantiles as right-closed
+cutpoints. A cutpoint within a tied mass assigns the whole mass to the group
+ending at that probability. Integer weights count as repeated subjects for
+quantiles, computed without expanding the observations. Empty groups are
+dropped before computing the statistic and df. Osius-Rojek
 uses SAS's profile-count centering, J rather than J-rank, and reports
 squared standardized Z with one df. Stukel is an efficient score test
 with nuisance projection, not a likelihood-ratio refit. Its df reflects
 the estimable increment (one or two). Formula details are in function help.
 
 ## Published numerical benchmarks
+
+For the book's NRS examples, quantile grouping matches ResourceSelection
+0.3-6 in group counts, group sizes, statistics, and p-values. The
+categorical-age model gives X^2=2.6926104, df=8, p=0.9521439. The numeric-age
+model gives X^2=7.0602359, df=8, p=0.5301479. SAS grouping gives respectively
+X^2=3.5468807, df=7, p=0.8302353 and X^2=6.8012604, df=8, p=0.5582193.
+This is a grouping choice; the comparison establishes numerical agreement
+for these examples without establishing comparative size or power.
+Group sizes and observed event counts agree exactly. Aggregating fitted
+expectations introduces floating-point differences up to 5.9e-10 in group
+expected counts, 1.1e-11 in chi-square statistics, and 5.4e-13 in p-values.
+Direct checks use absolute tolerances 1e-8, 1e-9, and 1e-12, respectively.
+
+The quantile rule follows the [ResourceSelection source][hl-source].
+ibist drops empty intervals created by interpolated cutpoints before
+calculating the statistic. ResourceSelection 0.3-6 retains empty factor
+levels in its observed/expected tables, which can produce undefined terms.
+Focused checks compare quantile groups with explicit expansion of a small
+weighted dataset, including large tied masses and empty intervals. They
+also verify weighted/individual agreement, retained grouping, pre/post
+diagnostics, invalid settings, and constant predictions.
 
 SAS LOGISTIC Example 79.19 reports these results for its training sample:
 
@@ -157,3 +184,4 @@ as part of this reference review.
 [comparison]: https://pubmed.ncbi.nlm.nih.gov/9160492/
 
 [s]: https://support.sas.com/documentation/onlinedoc/stat/151/logistic.pdf
+[hl-source]: https://github.com/cran/ResourceSelection/blob/HEAD/R/hoslem.test.R

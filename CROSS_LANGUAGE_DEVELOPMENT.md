@@ -503,7 +503,15 @@ and output; pooling rules are not transferred into the new interface.
 
 All five methods are asymptotic. Use actual groups and estimable rank;
 Hosmer-Lemeshow uses SAS target-frequency groups and probability ties at
-14 significant digits. Osius-Rojek uses SAS J-centering. Stukel uses an
+14 significant digits by default (grouping="target"). R also supports
+grouping="quantile"
+using unique type-7 sample quantiles, right-closed groups, and frequency
+weights interpreted as repeated subjects. A quantile within a tied mass
+puts the whole mass in the group ending at that probability. Empty groups
+are dropped, and df is actual group count minus two. Retain the selected
+rule in results and diagnostics. Quantile grouping applies only to HL;
+Python translation remains deferred until R stabilizes.
+Osius-Rojek uses SAS J-centering. Stukel uses an
 efficient score test, not an augmented likelihood-ratio fit, and accounts
 for a rank-one increment when necessary. Column-scaled SVD uses 1e-10
 relative tolerance; standardizing variances <=1e-12 are numerically zero.
