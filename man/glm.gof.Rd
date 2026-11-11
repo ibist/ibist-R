@@ -6,7 +6,13 @@
 \alias{print.ibist_glm_gof_tests}
 \title{Goodness-of-Fit Tests for Generalized Linear Models}
 \usage{
-glm.gof(fit, method = "pearson", g = 10, asymcheck = FALSE)
+glm.gof(
+  fit,
+  method = "pearson",
+  g = 10,
+  asymcheck = FALSE,
+  grouping = "target"
+)
 
 \method{as.data.frame}{ibist_glm_gof_tests}(x, ...)
 
@@ -25,12 +31,16 @@ Order and repetitions are retained; p-values are unadjusted.}
 
 \item{g}{Requested number of Hosmer-Lemeshow risk groups, integer >= 3.
 Tied fitted probabilities are kept together; actual groups can be fewer.
-Ties are identified at 14 significant digits for numerical stability.}
+SAS grouping identifies ties at 14 significant digits for stability.}
 
 \item{asymcheck}{Logical; attach approximation diagnostics under
 \code{diagnostics}. Default \code{FALSE}. Standalone checks are also
 available through \code{asymcheck(glm.gof, fit = fit, ...)} and
 \code{asymcheck(result)} without computing a test in the pre-check.}
+
+\item{grouping}{Hosmer-Lemeshow grouping rule, \code{"target"} (default)
+or \code{"quantile"}. Quantile grouping uses type-7 sample quantiles,
+as in \code{ResourceSelection::hoslem.test()}. Both rules retain ties.}
 
 \item{x}{An ordered collection of GLM goodness-of-fit tests.}
 
@@ -40,6 +50,7 @@ available through \code{asymcheck(glm.gof, fit = fit, ...)} and
 One method returns an htest with statistic, parameter (df), p.value,
   test.method, family, link, and groups. Multiple methods return an ordered
   \code{ibist_glm_gof_tests} list of these objects, with a combined summary.
+  Hosmer-Lemeshow results also retain \code{grouping} and print its rule.
   Inputs needed for diagnostic post-checks are retained independently of
   the asymcheck option. No model fit is stored in the result.
 }
@@ -56,10 +67,14 @@ pooling is done. Small expected counts can invalidate the chi-square
 reference. Poisson aggregation assesses grouped means, not all aspects of
 individual-count dispersion. Offsets and exposure offsets are retained.
 
-Hosmer-Lemeshow uses SAS's target-frequency grouping rule, always retaining
-probability ties. Its statistic uses both expected events and nonevents,
-with actual group count minus two df. An intercept must be in the model.
-Grouping may differ from software that splits ties or uses sample quantiles.
+Hosmer-Lemeshow defaults to SAS's target-frequency grouping rule.
+With \code{grouping = "quantile"}, unique type-7 sample quantiles define
+right-closed risk groups, including the lowest fitted probability.
+A quantile inside a tied mass places the whole mass in the group ending
+at that fitted probability. Group sizes can therefore differ substantially.
+Integer trial/frequency weights count as repeated subjects when finding
+quantiles. Empty groups are dropped. Both rules retain probability ties
+and use actual group count minus two df. An intercept must be in the model.
 
 Osius-Rojek follows the SAS normal standardization: center the profile
 Pearson statistic at J, not J-r. For profile trial totals n and probabilities
@@ -131,6 +146,8 @@ SAS Institute. SAS/STAT User's Guide, LOGISTIC Procedure,
   goodness-of-fit tests for the logistic regression model.
   Statistics in Medicine 16, 965-980.
   Stukel (1988), JASA 83, 426-431.
+  ResourceSelection, source for hoslem.test (quantile grouping).
+  \url{https://github.com/cran/ResourceSelection/blob/HEAD/R/hoslem.test.R}.
 
   Companion textbook, Chapter 11 (binomial approximation guideline),
   Chapter 16, Calibration (grouped logistic and Hosmer-Lemeshow tests),

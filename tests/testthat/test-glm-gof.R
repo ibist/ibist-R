@@ -82,3 +82,53 @@ test_that("zero-weight boundary predictions do not affect GOF", {
   expect_equal(suppressWarnings(glm.gof(fit))$statistic,
                  suppressWarnings(glm.gof(base))$statistic)
 })
+
+test_that("quantile grouping matches expanded type-7 groups with ties", {
+  d <- data.frame(x = 0:5, n = c(9, 25, 6, 18, 12, 30),
+                  y = c(1, 5, 2, 9, 9, 25))
+  expanded <- data.frame(x = rep(d$x, d$n),
+    y = unlist(Map(function(y, n) rep(c(1, 0), c(y, n-y)), d$y, d$n)))
+  fit <- glm(y ~ x, expanded, family = binomial())
+  p <- fitted(fit)
+  group <- cut(p, unique(quantile(p, seq(0, 1, 0.1))),
+                include.lowest = TRUE)
+  expected <- rowsum(cbind(observed = expanded$y, expected = p, n = 1),
+                      group)
+  result <- suppressWarnings(glm.gof(fit, "hosmer-lemeshow",
+    grouping = "quantile", asymcheck = TRUE))
+  expect_equal(unname(as.matrix(result$groups)), unname(expected))
+  expect_equal(nrow(result$groups), length(unique(group)))
+  expect_equal(result$groups$n, as.numeric(table(droplevels(group))))
+  variance <- expected[, "expected"] *
+    (1-expected[, "expected"]/expected[, "n"])
+  statistic <- sum((expected[, "observed"]-expected[, "expected"])^2 /
+                     variance)
+  expect_equal(unname(result$statistic), statistic)
+  expect_equal(result$p.value,
+    pchisq(statistic, nrow(expected)-2, lower.tail = FALSE))
+  grouped <- glm(cbind(y, n-y) ~ x, d, family = binomial())
+  weighted <- suppressWarnings(glm.gof(grouped, "hosmer-lemeshow",
+                                        grouping = "quantile"))
+  expect_equal(weighted$groups$n, result$groups$n)
+  expect_equal(unname(weighted$statistic), statistic, tolerance = 1e-6)
+  expect_identical(result$grouping, "quantile")
+  expect_identical(result$diagnostics$details$grouping, "quantile")
+  expect_equal(asymcheck(glm.gof, fit, method = "hosmer-lemeshow",
+                         grouping = "quantile"), asymcheck(result))
+})
+
+test_that("grouping validates and constant quantiles are uncomputable", {
+  d <- data.frame(x = 0:5, y = c(2, 3, 4, 6, 7, 8), n = 20)
+  fit <- glm(cbind(y, n-y) ~ x, d, family = binomial())
+  expect_error(glm.gof(fit, grouping = "unknown"), "grouping")
+  expect_error(glm.gof(fit, grouping = NA_character_), "grouping")
+  expect_error(asymcheck(glm.gof, fit, grouping = "quantile"),
+                 "only to Hosmer-Lemeshow")
+  flat <- glm(cbind(y, n-y) ~ 1, d, family = binomial())
+  check <- asymcheck(glm.gof, flat, method = "hosmer-lemeshow",
+                      grouping = "quantile")
+  expect_equal(check$details$actual.groups, 1L)
+  expect_false(check$details$computability$ok)
+  expect_error(glm.gof(flat, "hosmer-lemeshow", grouping = "quantile"),
+                 "degrees of freedom")
+})

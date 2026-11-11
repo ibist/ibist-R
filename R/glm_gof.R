@@ -13,11 +13,14 @@
 #'   Order and repetitions are retained; p-values are unadjusted.
 #' @param g Requested number of Hosmer-Lemeshow risk groups, integer >= 3.
 #'   Tied fitted probabilities are kept together; actual groups can be fewer.
-#'   Ties are identified at 14 significant digits for numerical stability.
+#'   SAS grouping identifies ties at 14 significant digits for stability.
 #' @param asymcheck Logical; attach approximation diagnostics under
 #'   \code{diagnostics}. Default \code{FALSE}. Standalone checks are also
 #'   available through \code{asymcheck(glm.gof, fit = fit, ...)} and
 #'   \code{asymcheck(result)} without computing a test in the pre-check.
+#' @param grouping Hosmer-Lemeshow grouping rule, \code{"target"} (default)
+#'   or \code{"quantile"}. Quantile grouping uses type-7 sample quantiles,
+#'   as in \code{ResourceSelection::hoslem.test()}. Both rules retain ties.
 #'
 #' @details
 #' Pearson and deviance aggregate identical model-matrix rows AND offsets.
@@ -28,10 +31,14 @@
 #' reference. Poisson aggregation assesses grouped means, not all aspects of
 #' individual-count dispersion. Offsets and exposure offsets are retained.
 #'
-#' Hosmer-Lemeshow uses SAS's target-frequency grouping rule, always retaining
-#' probability ties. Its statistic uses both expected events and nonevents,
-#' with actual group count minus two df. An intercept must be in the model.
-#' Grouping may differ from software that splits ties or uses sample quantiles.
+#' Hosmer-Lemeshow defaults to SAS's target-frequency grouping rule.
+#' With \code{grouping = "quantile"}, unique type-7 sample quantiles define
+#' right-closed risk groups, including the lowest fitted probability.
+#' A quantile inside a tied mass places the whole mass in the group ending
+#' at that fitted probability. Group sizes can therefore differ substantially.
+#' Integer trial/frequency weights count as repeated subjects when finding
+#' quantiles. Empty groups are dropped. Both rules retain probability ties
+#' and use actual group count minus two df. An intercept must be in the model.
 #'
 #' Osius-Rojek follows the SAS normal standardization: center the profile
 #' Pearson statistic at J, not J-r. For profile trial totals n and probabilities
@@ -88,6 +95,7 @@
 #' @return One method returns an htest with statistic, parameter (df), p.value,
 #'   test.method, family, link, and groups. Multiple methods return an ordered
 #'   \code{ibist_glm_gof_tests} list of these objects, with a combined summary.
+#'   Hosmer-Lemeshow results also retain \code{grouping} and print its rule.
 #'   Inputs needed for diagnostic post-checks are retained independently of
 #'   the asymcheck option. No model fit is stored in the result.
 #' @references SAS Institute. SAS/STAT User's Guide, LOGISTIC Procedure,
@@ -101,6 +109,8 @@
 #'   goodness-of-fit tests for the logistic regression model.
 #'   Statistics in Medicine 16, 965-980.
 #'   Stukel (1988), JASA 83, 426-431.
+#'   ResourceSelection, source for hoslem.test (quantile grouping).
+#'   \url{https://github.com/cran/ResourceSelection/blob/HEAD/R/hoslem.test.R}.
 #'
 #'   Companion textbook, Chapter 11 (binomial approximation guideline),
 #'   Chapter 16, Calibration (grouped logistic and Hosmer-Lemeshow tests),
@@ -112,12 +122,13 @@
 #' fit <- glm(cbind(y, n-y) ~ age, data = d, family = binomial())
 #' glm.gof(fit, method = c("pearson", "deviance"), asymcheck = TRUE)
 #' @export
-glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
+glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE,
+                    grouping = "target") {
   .asymcheck_flag(asymcheck, "asymcheck")
   data <- .glm_gof_data(fit)
-  method <- .glm_gof_methods(method, g, data)
+  method <- .glm_gof_methods(method, g, data, grouping)
   results <- lapply(method, function(name) {
-    parts <- .glm_gof_parts(data, name, g)
+    parts <- .glm_gof_parts(data, name, g, grouping = grouping)
     check <- .glm_gof_check(data, name, parts)
     if (identical(check$condition.met, FALSE)) {
       warning(name, ": approximation criterion not met; inspect diagnostics",
@@ -131,6 +142,10 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
       test.method = name, family = data$family, link = data$link,
       data.name = paste(deparse(stats::formula(fit)), collapse = " "),
       groups = parts$groups), class = "htest")
+    if (name == "hosmer-lemeshow") {
+      out$grouping <- grouping
+      out$method <- paste(out$method, paste0("(", grouping, " grouping)"))
+    }
     attr(out, "gof.diagnostics") <- check
     if (asymcheck) out$diagnostics <- check
     out
@@ -208,7 +223,7 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
   out
 }
 
-.glm_gof_methods <- function(method, g, data) {
+.glm_gof_methods <- function(method, g, data, grouping) {
   allowed <- c("pearson", "deviance", "hosmer-lemeshow", "osius-rojek",
                "stukel")
   if (!is.character(method) || !length(method) || anyNA(method) ||
@@ -218,6 +233,13 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
   if (g != 10 && !"hosmer-lemeshow" %in% method) {
     stop("g applies only to Hosmer-Lemeshow")
   }
+  if (!is.character(grouping) || length(grouping) != 1L ||
+      is.na(grouping) || !grouping %in% c("target", "quantile")) {
+    stop("grouping must be 'target' or 'quantile'")
+  }
+  if (grouping != "target" && !"hosmer-lemeshow" %in% method) {
+    stop("grouping applies only to Hosmer-Lemeshow")
+  }
   if (any(!method %in% c("pearson", "deviance")) &&
       (data$family != "binomial" || data$link != "logit")) {
     stop("requested method requires a binomial logit model")
@@ -225,12 +247,13 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
   method
 }
 
-.glm_gof_hl <- function(data, g) {
+.glm_gof_hl <- function(data, g, grouping) {
   # Projecting a constant checks for an intercept despite aliased columns.
   q <- .glm_gof_basis(data$x)
   if (max(abs(1 - q %*% colSums(q))) > 1e-7) {
     stop("Hosmer-Lemeshow requires an intercept")
   }
+  if (grouping == "quantile") return(.glm_gof_hl_quantile(data, g))
   order <- order(data$mu)
   p <- signif(data$mu[order], 14)
   id <- match(p, unique(p))
@@ -257,14 +280,37 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
   as.data.frame(rowsum(as.matrix(blocks), group, reorder = FALSE))
 }
 
-.glm_gof_parts <- function(data, method, g, validate = TRUE) {
+.glm_gof_hl_quantile <- function(data, g) {
+  order <- order(data$mu)
+  probabilities <- data$mu[order]
+  cumulative <- cumsum(data$n[order])
+  # Type-7 order statistics for the expanded sample, without expanding it.
+  h <- 1 + (sum(data$n)-1) * seq(0, 1, by = 1/g)
+  index <- floor(h)
+  lower <- findInterval(index-1, cumulative) + 1L
+  upper <- findInterval(ceiling(h)-1, cumulative) + 1L
+  breaks <- probabilities[lower]
+  interpolate <- which(h > index & probabilities[upper] != breaks)
+  fraction <- h[interpolate] - index[interpolate]
+  breaks[interpolate] <- (1-fraction)*breaks[interpolate] +
+    fraction*probabilities[upper[interpolate]]
+  breaks <- unique(breaks)
+  group <- if (length(breaks) < 2L) rep(1L, length(data$mu)) else
+    cut(data$mu, breaks, include.lowest = TRUE, labels = FALSE)
+  tab <- cbind(observed = data$observed, expected = data$expected, n = data$n)
+  as.data.frame(rowsum(tab, group, reorder = TRUE))
+}
+
+.glm_gof_parts <- function(data, method, g, validate = TRUE,
+                           grouping = "target") {
   groups <- data.frame(observed = data$observed, expected = data$expected,
                         n = data$n)
   parts <- list(groups = groups, df = nrow(groups) - data$rank)
   if (method == "hosmer-lemeshow") {
-    parts$groups <- .glm_gof_hl(data, g)
+    parts$groups <- .glm_gof_hl(data, g, grouping)
     parts$df <- nrow(parts$groups) - 2L
     parts$requested.groups <- g
+    parts$grouping <- grouping
   }
   if (method == "osius-rojek") {
     v <- (1-2*data$mu) / sqrt(data$variance)
@@ -355,6 +401,7 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
     if (method == "hosmer-lemeshow") {
       details$requested.groups <- parts$requested.groups
       details$actual.groups <- nrow(tab)
+      details$grouping <- parts$grouping
       rows <- rbind(.asymcheck_rows(method, "actual risk groups", nrow(tab),
         6, ">=", nrow(tab) >= 6), rows)
       notes <- c(notes,
@@ -387,12 +434,13 @@ glm.gof <- function(fit, method = "pearson", g = 10, asymcheck = FALSE) {
 }
 
 .glm_gof_precheck <- function(fit, method = "pearson", g = 10,
-                               asymcheck = FALSE) {
+                               asymcheck = FALSE, grouping = "target") {
   .asymcheck_flag(asymcheck, "asymcheck")
   data <- .glm_gof_data(fit)
-  methods <- .glm_gof_methods(method, g, data)
+  methods <- .glm_gof_methods(method, g, data, grouping)
   checks <- lapply(methods, function(name)
-    .glm_gof_check(data, name, .glm_gof_parts(data, name, g, validate = FALSE)))
+    .glm_gof_check(data, name, .glm_gof_parts(data, name, g, validate = FALSE,
+                                            grouping = grouping)))
   .glm_gof_combine(checks)
 }
 
