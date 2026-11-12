@@ -1,9 +1,9 @@
-# R and Python development principles
+# R, Python, and Julia development principles
 
-Agreed: 2026-11-06. Last updated: 2026-11-09.
+Agreed: 2026-11-06. Last updated: 2026-11-11.
 
-This document records the agreed approach to a Python sister package for
-ibist. It is the authoritative development policy for both implementations.
+This document records the agreed approach to the Python and Julia sister
+packages for ibist. It is the authoritative policy for all three implementations.
 The Python repository is [ibist-py](https://github.com/ibist/ibist-py).
 Read [development lessons](DEVELOPMENT_LESSONS.md) before changing statistical
 diagnostics or translating them; it records failures and required safeguards.
@@ -14,7 +14,7 @@ PyPI name.
 
 ## Shared statistical specification
 
-Maintain one specification of each method and two native interfaces. The
+Maintain one specification of each method and three native interfaces. The
 specification defines the estimand, sampling assumptions, null hypothesis,
 statistic, variance formulas, confidence interval construction, and numerical
 algorithm. It also defines defaults, alternatives, table orientation,
@@ -24,8 +24,8 @@ mid-p calculations, boundary behavior, and handling of invalid inputs.
 R is the reference implementation because it contains the existing methods
 and validation examples. Develop new features in R first. Research and settle
 the statistical definitions, interface, output, documentation, and focused
-validation before translating the stabilized design to Python. This sequence
-avoids revising both implementations while design decisions remain open.
+validation before translating the stabilized design to Python and Julia.
+This sequence avoids revising all implementations while decisions remain open.
 An implementation's behavior alone does not establish statistical correctness.
 
 ## Native interfaces
@@ -35,6 +35,48 @@ Python functions and arguments, for example `or_2x2_ci()`,
 `agreement_test()`, `conf_level`, and `test_variance`. These examples illustrate
 naming conventions; individual signatures still require design review.
 Preserve the current R interface until its separately planned naming migration.
+
+### Julia sister package
+
+On 2026-11-11 the authors approved a native Julia sister package. Its module
+and package name is `IBist`, using `using IBist`; the local repository is
+`IBist.jl`, published at https://github.com/ibist/ibist-jl. The mixed-case
+module spelling is deliberate. Registry availability does not reserve the
+name; General registration remains a separate step.
+Use snake_case functions and keyword arguments corresponding to Python,
+including `or_2x2_ci()` and `conf_level`, with CamelCase result types.
+Julia users must not require R or Python at runtime.
+
+The first milestone is the seven shared teaching datasets and the four
+2x2 odds-ratio interval methods. Preserve defaults, method order and
+repetitions, fixed-margin conditioning, exact/mid-p definitions, one-sided
+bounds, and unadjusted common estimates. `CIResult` provides full-precision
+estimates and limits, readable printing, and Tables.jl/DataFrame views.
+Interval-only results contain no fabricated hypothesis test.
+
+DataFrames is a regular dependency so the teaching examples work after
+standard installation. Julia factors use categorical arrays with the
+exported levels and order; all missing values use `missing`. Numeric value
+labels remain metadata. This differs deliberately from Python's numeric NaN
+and nullable-integer representations. Each load and explicit DataFrame copy
+is independent. Dataset metadata retain definitions and provenance.
+
+`data-raw/export-julia.R` invokes the existing portable exporters with
+Julia destinations; it neither duplicates cleaning nor changes Python's
+exports. Its additional one-sided reference calls supplement the shared
+two-sided OR fixtures. Julia's conditional limits use log-scale numerical
+inversion, allowing `2e-6` relative or `2e-8` absolute endpoint differences
+from R's direct odds-ratio inversion. Reuse regression cases alongside
+independent formulas, published results, exact coverage enumeration, and
+boundary checks. Approximation diagnostics and the remaining families are
+deferred rather than translating unsettled behavior.
+
+Use Julia-native numerical code for ordinary methods. Algorithms designated
+as shared cores, including Wang's, must retain their authoritative C++
+implementation, with a thin binding and portable binary artifacts when added.
+Do not independently rewrite those algorithms in Julia. Tests cover Julia
+1.10 and current stable on Linux, macOS, and Windows; build executable
+documentation without automatic registration or publishing.
 
 On 2026-11-06, the authors agreed to use `prop.1s.ci()`, `prop.2s.ci()`,
 and `rr.2x2.ci()` in R, with `prop_1s_ci()`, `prop_2s_ci()`, and
