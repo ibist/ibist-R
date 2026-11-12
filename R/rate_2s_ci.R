@@ -1,0 +1,199 @@
+#' Confidence Intervals for a Two-Sample Poisson Rate Ratio
+#'
+#' Computes confidence intervals for the rate ratio
+#' \eqn{\rho = \lambda_1 / \lambda_2} from two independent Poisson counts with
+#' known exposures.
+#'
+#' @param x Length-2 vector of non-negative integer event counts.
+#' @param exposure Length-2 positive numeric vector of exposures.
+#' @param side Interval form: \code{"two.sided"} (default),
+#'   \code{"lower"}, or \code{"upper"}. An omitted (\code{NULL}) value
+#'   selects two-sided limits. One-sided bounds use the full error probability.
+#' @param alternative Compatibility alias: \code{"two.sided"},
+#'   \code{"greater"} (lower bound), or \code{"less"} (upper bound).
+#'   Conflicting \code{side} and \code{alternative} values are errors.
+#' @param conf.level Confidence level. Default is 0.95.
+#' @param method Method or methods for confidence interval. One or more of:
+#'   \itemize{
+#'     \item \code{"log"}: Log-Wald interval
+#'     \item \code{"score"}: Transformed Wilson score interval
+#'     \item \code{"exact"}: Transformed exact Clopper-Pearson interval
+#'   }
+#' @param ... Reserved for future extensions.
+#' @param asymcheck Logical. Attach the book's approximation checks under
+#'   \code{diagnostics}; default \code{FALSE}. See \code{\link{asymcheck}}.
+#'
+#' @details
+#' For two independent Poisson variables
+#' \eqn{X_i \sim \mathrm{Pois}(\lambda_i T_i)}, the point estimate of the
+#' rate ratio is
+#' \deqn{
+#'   \hat\rho = \frac{X_1/T_1}{X_2/T_2}.
+#' }
+#'
+#' The \code{"log"} method uses the large-sample interval
+#' \deqn{
+#'   \log(\hat\rho) \pm z_{1-\alpha/2}\sqrt{1/X_1 + 1/X_2}
+#' }
+#' and exponentiates the endpoints. This method requires both counts to be
+#' positive.
+#'
+#' The \code{"score"} and \code{"exact"} methods use the conditional binomial
+#' representation. Given \eqn{n = X_1 + X_2},
+#' \eqn{X_1 \sim \mathrm{Binom}(n, \pi)}, where
+#' \deqn{
+#'   \pi = \frac{T_1\rho}{T_1\rho + T_2}.
+#' }
+#' Confidence limits \eqn{L} and \eqn{U} for \eqn{\pi} are transformed to
+#' confidence limits for \eqn{\rho} as
+#' \deqn{
+#'   \left(
+#'   \frac{L T_2}{(1 - L)T_1},
+#'   \frac{U T_2}{(1 - U)T_1}
+#'   \right).
+#' }
+#' The \code{"score"} method uses Wilson score limits for \eqn{\pi}; the
+#' \code{"exact"} method uses the exact Clopper-Pearson limits returned by
+#' \code{\link[stats]{binom.test}}.
+#'
+#' @return An object of class \code{"ibist_ci"} containing the rate estimates
+#'   and a confidence-limit matrix with one row per method.
+#'   Original counts, exposures, and settings are retained for post-checks.
+#'   Log-Wald checks both observed counts > 10 (book Chapter 22); score uses
+#'   the conditional binomial CI guideline from Chapter 11. Exact intervals
+#'   need no asymptotic check. Diagnostics do not change the intervals.
+#'
+#' @examples
+#' rate.2s.ci(c(151, 55), exposure = c(57518.1, 74573.5))
+#' rate.2s.ci(c(151, 55), exposure = c(57518.1, 74573.5), method = "score")
+#' rate.2s.ci(c(151, 55), exposure = c(57518.1, 74573.5),
+#'            method = c("log", "score"))
+#' rate.2s.ci(c(9, 12), exposure = c(1817.6, 7496.3), method = "exact")
+#'
+#' @export
+rate.2s.ci <- function(
+  x,
+  exposure = c(1.0, 1.0),
+  conf.level = 0.95,
+  method = c("log", "score", "exact"),
+  side = NULL, alternative = NULL, ..., asymcheck = FALSE
+) {
+  .asymcheck_flag(asymcheck, "asymcheck")
+  orientation <- resolve_ci_side(side, alternative)
+  side <- orientation$side
+  if (length(x) != 2L || any(!is.finite(x)) ||
+      any(x < 0) || any(abs(x - round(x)) > 0)) {
+    stop("x must be a length-2 vector of non-negative integers.")
+  }
+
+  if (length(exposure) != 2L || any(!is.finite(exposure)) ||
+      any(exposure <= 0)) {
+    stop("exposure must be a length-2 vector of positive values.")
+  }
+
+  if (!is.numeric(conf.level) || length(conf.level) != 1L ||
+      conf.level <= 0 || conf.level >= 1) {
+    stop("conf.level must be a single number in (0, 1).")
+  }
+
+  if (sum(x) == 0) {
+    stop("at least one event is required.")
+  }
+
+  methods <- if (missing(method)) method[1L] else {
+    match.arg(method, several.ok = TRUE)
+  }
+  rate1 <- x[1] / exposure[1]
+  rate2 <- x[2] / exposure[2]
+  rate_ratio <- rate1 / rate2
+
+  ci_methods <- list(
+    log = ci_rate_ratio_log,
+    score = ci_rate_ratio_score,
+    exact = ci_rate_ratio_exact
+  )
+  intervals <- lapply(
+    methods,
+    function(method) ci_methods[[method]](
+      x, exposure, conf.level, alternative = orientation$alternative, ...)
+  )
+
+  result <- new_ibist_ci(
+    method = methods,
+    estimate = c("rate 1" = rate1, "rate 2" = rate2,
+                 "rate ratio" = rate_ratio),
+    intervals = intervals,
+    conf.level = conf.level,
+    side = side,
+    parameter = "Poisson rate ratio",
+    data.name = paste0(
+      "x = c(", x[1], ", ", x[2], "), ",
+      "exposure = c(", exposure[1], ", ", exposure[2], ")"
+    )
+  )
+  context <- list(family = "rate2", x = x, exposure = exposure,
+    method = methods, conf.level = conf.level, side = side, alternative = NULL)
+  attr(result, "asymcheck.context") <- context
+  if (asymcheck) result$diagnostics <- .asymcheck_book_ci(context)
+  result
+}
+
+ci_rate_ratio_log <- function(x, exposure, conf.level,
+                              alternative = "two.sided", ...) {
+  if (x[1] == 0 || x[2] == 0) {
+    stop("log-Wald confidence interval for the rate ratio requires positive event counts")
+  }
+
+  alpha <- 1 - conf.level
+  z <- qnorm(if (alternative == "two.sided") 1 - alpha / 2 else conf.level)
+  rate_ratio <- (x[1] / exposure[1]) / (x[2] / exposure[2])
+  se_log_ratio <- sqrt(1 / x[1] + 1 / x[2])
+
+  limits <- exp(log(rate_ratio) + c(-1, 1) * z * se_log_ratio)
+  switch(alternative,
+         two.sided = limits,
+         greater = c(limits[1], Inf),
+         less = c(0, limits[2]))
+}
+
+ci_rate_ratio_score <- function(x, exposure, conf.level,
+                                alternative = "two.sided", ...) {
+  pi_ci <- prop.1s.ci(x[1], sum(x), conf.level = conf.level,
+                      method = "wilson", alternative = alternative)$conf.int
+  transform_pi_to_rate_ratio(as.numeric(pi_ci), exposure)
+}
+
+ci_rate_ratio_exact <- function(x, exposure, conf.level,
+                                alternative = "two.sided", ...) {
+  pi_ci <- prop.1s.ci(x[1], sum(x), conf.level = conf.level,
+                      method = "clopper-pearson",
+                      alternative = alternative)$conf.int
+  transform_pi_to_rate_ratio(as.numeric(pi_ci), exposure)
+}
+
+binom_wilson_ci <- function(x, n, conf.level) {
+  alpha <- 1 - conf.level
+  z <- qnorm(1 - alpha / 2)
+  p <- x / n
+  denominator <- 1 + z^2 / n
+  center <- (p + z^2 / (2 * n)) / denominator
+  half_width <- z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2)) / denominator
+
+  c(max(0, center - half_width), min(1, center + half_width))
+}
+
+transform_pi_to_rate_ratio <- function(pi_ci, exposure) {
+  lower <- if (pi_ci[1] <= 0) {
+    0
+  } else {
+    pi_ci[1] * exposure[2] / ((1 - pi_ci[1]) * exposure[1])
+  }
+
+  upper <- if (pi_ci[2] >= 1) {
+    Inf
+  } else {
+    pi_ci[2] * exposure[2] / ((1 - pi_ci[2]) * exposure[1])
+  }
+
+  c(lower, upper)
+}
