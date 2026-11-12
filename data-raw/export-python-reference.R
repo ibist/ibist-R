@@ -1,6 +1,6 @@
 # Explicitly regenerate R comparison cases, then review changes before use.
 # These are cross-language regression values, not independent validation.
-# Run from the R package root: Rscript data-raw/export-python-reference.R
+# Run from the R package root: Rscript data-raw/export-python-reference.R [output]
 
 if (!requireNamespace("jsonlite", quietly = TRUE)) {
   stop("Install jsonlite to export development reference cases.")
@@ -43,7 +43,10 @@ for (name in names(cases)) {
     }
   }
 }
-output <- "../ibist-py/tests/reference/or_2x2_r.json"
+args <- commandArgs(trailingOnly = TRUE)
+output <- if (length(args)) args[[1L]] else {
+  "../ibist-py/tests/reference/or_2x2_r.json"
+}
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
 jsonlite::write_json(
   list(source = "R source in ibist-R; independently checked in Python tests",
