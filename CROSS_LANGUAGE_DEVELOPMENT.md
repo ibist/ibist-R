@@ -1,6 +1,6 @@
 # R, Python, and Julia development principles
 
-Agreed: 2026-11-06. Last updated: 2026-11-11.
+Agreed: 2026-11-06. Last updated: 2026-11-12.
 
 This document records the agreed approach to the Python and Julia sister
 packages for ibist. It is the authoritative policy for all three implementations.
@@ -40,7 +40,7 @@ Preserve the current R interface until its separately planned naming migration.
 
 On 2026-11-11 the authors approved a native Julia sister package. Its module
 and package name is `IBist`, using `using IBist`; the local repository is
-`IBist.jl`, published at https://github.com/ibist/ibist-jl. The mixed-case
+`IBist.jl`, published at https://github.com/ibist/IBist.jl. The mixed-case
 module spelling is deliberate. Registry availability does not reserve the
 name; General registration remains a separate step.
 Use snake_case functions and keyword arguments corresponding to Python,
@@ -924,6 +924,22 @@ cases representative and avoid redundant Cartesian grids.
 Generate portable reference cases from documented inputs and independently
 validated expectations. Do not silently replace expected values with the
 latest output of either implementation when a comparison fails.
+
+## Generated files in version control
+
+Track maintained sources and build instructions. Generated build output,
+rendered documentation, caches, and compiled binaries stay out of Git;
+ignore them in each repository. Julia's Project.toml files are maintained
+configuration; its Manifest.toml files and docs/build/ are currently ignored.
+
+Generated files are tracked only for a documented distribution or
+reproducibility need. Existing exceptions include bundled prepared datasets,
+portable metadata, validation reference fixtures, and the exported shared C++
+source with provenance. Required R source-package artifacts such as Rd help,
+NAMESPACE, and Rcpp bindings remain tracked. Deliberately versioned lockfiles,
+such as the book's renv.lock, also remain tracked for reproducibility.
+Regenerate these exceptions from their maintained sources; never hand-edit
+them. Do not remove required package files as part of a build-output cleanup.
 
 ## Computational code
 
